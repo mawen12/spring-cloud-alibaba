@@ -32,6 +32,8 @@ import com.alibaba.nacos.client.naming.core.Balancer;
 import org.springframework.cloud.client.ServiceInstance;
 
 /**
+ * Nacos客户端均衡器
+ *
  * @author itmuch.com XuDaojie
  * @since 2021.1
  */
@@ -42,7 +44,8 @@ public class NacosBalancer extends Balancer {
 	private static final String IPV6_KEY = "IPv6";
 
 	/**
-	 * Choose instance by weight.
+	 * 基于权重选择一个实例，其中仅会在权重>=0的实例中选择
+	 *
 	 * @param instances Instance List
 	 * @return the chosen instance
 	 */
@@ -52,27 +55,40 @@ public class NacosBalancer extends Balancer {
 
 	/**
 	 * Spring Cloud LoadBalancer Choose instance by weight.
+	 *
 	 * @param serviceInstances Instance List
 	 * @return the chosen instance
 	 */
-	public static ServiceInstance getHostByRandomWeight3(
-			List<ServiceInstance> serviceInstances) {
+	public static ServiceInstance getHostByRandomWeight3(List<ServiceInstance> serviceInstances) {
 		Map<Instance, ServiceInstance> instanceMap = new HashMap<>();
 		List<Instance> nacosInstance = serviceInstances.stream().map(serviceInstance -> {
+			/**
+			 * {@link ServiceInstance}中的实例权重是保存在metadata中的，key为nacos.weight
+			 */
 			Map<String, String> metadata = serviceInstance.getMetadata();
 
 			// see
 			// com.alibaba.cloud.nacos.discovery.NacosServiceDiscovery.hostToServiceInstance()
 			Instance instance = new Instance();
+			// instance.ip -> serviceInstance.host
 			instance.setIp(serviceInstance.getHost());
+			// instance.port -> serviceInstance.port
 			instance.setPort(serviceInstance.getPort());
+			// instance.weight -> metadata(nacos.weight)
 			instance.setWeight(Double.parseDouble(metadata.get("nacos.weight")));
+			// instance.healthy -> metadata(nacos.healthy)
 			instance.setHealthy(Boolean.parseBoolean(metadata.get("nacos.healthy")));
 			instanceMap.put(instance, serviceInstance);
 			return instance;
 		}).collect(Collectors.toList());
 
+		/**
+		 * 基于权重选择一个实例，其中仅会在权重>=0的实例中随机选择
+		 */
 		Instance instance = getHostByRandomWeight2(nacosInstance);
+		/**
+		 * 获取对应的NacosServiceInstance，因为这是处于Spring Cloud场景下，所有的实例交互都是通过{@link ServiceInstance}
+		 */
 		NacosServiceInstance nacosServiceInstance = (NacosServiceInstance) instanceMap.get(instance);
 		// When local support IPv6 address stack, referred to use IPv6 address.
 		if (StringUtils.isNotEmpty(NacosLoadBalancer.ipv6)) {

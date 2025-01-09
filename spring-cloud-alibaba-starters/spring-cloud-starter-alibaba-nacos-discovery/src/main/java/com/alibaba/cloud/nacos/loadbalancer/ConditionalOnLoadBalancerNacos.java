@@ -23,6 +23,9 @@ import java.lang.annotation.Target;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
+/**
+ * 使用基于Nacos的负载均衡注解，启用条件为PROPERTIES(spring.cloud.loadbalancer.nacos.enabled)=true
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE, ElementType.METHOD})
 @ConditionalOnProperty(value = "spring.cloud.loadbalancer.nacos.enabled", havingValue = "true")

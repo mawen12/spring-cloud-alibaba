@@ -29,18 +29,30 @@ import static com.alibaba.nacos.api.NacosFactory.createMaintainService;
 import static com.alibaba.nacos.api.NacosFactory.createNamingService;
 
 /**
+ * Nacos服务管理器，提供实例注册、服务订阅、服务维护等功能
+ *
  * @author yuhuangbin
  */
 public class NacosServiceManager {
 
 	private static final Logger log = LoggerFactory.getLogger(NacosServiceManager.class);
 
+	/**
+	 * Nacos注册中心属性
+	 */
 	private NacosDiscoveryProperties nacosDiscoveryProperties;
 
+	/**
+	 * Nacos注册中心
+	 */
 	private volatile NamingService namingService;
 
 	private volatile NamingMaintainService namingMaintainService;
 
+	/**
+	 * 返回注册中心，如果不存在，使用属性构造并返回，
+	 * 构造时每次都会通过{@link NacosDiscoveryProperties#getNacosProperties()}，而不是缓存，可能时该属性有可能发生变化？
+	 */
 	public NamingService getNamingService() {
 		if (Objects.isNull(this.namingService)) {
 			buildNamingService(nacosDiscoveryProperties.getNacosProperties());
@@ -63,10 +75,8 @@ public class NacosServiceManager {
 		return namingMaintainService;
 	}
 
-	public boolean isNacosDiscoveryInfoChanged(
-			NacosDiscoveryProperties currentNacosDiscoveryPropertiesCache) {
-		if (Objects.isNull(this.nacosDiscoveryProperties)
-				|| this.nacosDiscoveryProperties.equals(currentNacosDiscoveryPropertiesCache)) {
+	public boolean isNacosDiscoveryInfoChanged(NacosDiscoveryProperties currentNacosDiscoveryPropertiesCache) {
+		if (Objects.isNull(this.nacosDiscoveryProperties) || this.nacosDiscoveryProperties.equals(currentNacosDiscoveryPropertiesCache)) {
 			return false;
 		}
 		return true;
@@ -84,6 +94,9 @@ public class NacosServiceManager {
 	}
 
 	private NamingService buildNamingService(Properties properties) {
+		/**
+		 * 该方法可能被多个线程调用，因此为了确保实例只能被初始化一次，需要进行双重检查
+		 */
 		if (Objects.isNull(namingService)) {
 			synchronized (NacosServiceManager.class) {
 				if (Objects.isNull(namingService)) {
@@ -94,6 +107,12 @@ public class NacosServiceManager {
 		return namingService;
 	}
 
+	/**
+	 * NamingService的创建方法，上层调用时增加了同步关键字，确保了线程安全性
+	 *
+	 * @param properties
+	 * @return
+	 */
 	private NamingService createNewNamingService(Properties properties) {
 		try {
 			return createNamingService(properties);

@@ -33,6 +33,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * Nacos服务发现的配置，该配置的开启条件如下：
+ * <ul>
+ *     <li>PROPERTIES(spring.cloud.discovery.enabled)=true</li>
+ *     <li>PROPERTIES(spring.cloud.discovery.blocking.enabled)=true</li>
+ *     <li>PROPERTIES(spring.cloud.nacos.discovery.enabled)=true</li>
+ * </ul>
+ * <p>
+ * 触发顺序为：{@link NacosDiscoveryAutoConfiguration} -> {@code This} -> {@link SimpleDiscoveryClientAutoConfiguration} {@link CommonsClientAutoConfiguration}
+ *
  * @author xiaojing
  * @author echooymxq
  * @author ruansheng
@@ -41,11 +50,16 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnDiscoveryEnabled
 @ConditionalOnBlockingDiscoveryEnabled
 @ConditionalOnNacosDiscoveryEnabled
-@AutoConfigureBefore({ SimpleDiscoveryClientAutoConfiguration.class,
-		CommonsClientAutoConfiguration.class })
+@AutoConfigureBefore({ SimpleDiscoveryClientAutoConfiguration.class, CommonsClientAutoConfiguration.class })
 @AutoConfigureAfter(NacosDiscoveryAutoConfiguration.class)
 public class NacosDiscoveryClientConfiguration {
 
+	/**
+	 * 注册服务发现类，该类依赖{@link NacosServiceDiscovery}，因此该配置类的注册需要在{@link NacosDiscoveryAutoConfiguration}之后
+	 *
+	 * @param nacosServiceDiscovery
+	 * @return
+	 */
 	@Bean
 	public DiscoveryClient nacosDiscoveryClient(
 			NacosServiceDiscovery nacosServiceDiscovery) {
@@ -53,6 +67,10 @@ public class NacosDiscoveryClientConfiguration {
 	}
 
 	/**
+	 * 注册Nacos观察器，该观察其监听当前实例发生变化的事件，并更新{@link NacosDiscoveryProperties#metadata}
+	 * 该类依赖{@link NacosServiceManager}和{@link NacosDiscoveryProperties}，
+	 * 因此该配置类的注册需要在{@link NacosDiscoveryAutoConfiguration}之后
+	 *
 	 * NacosWatch is no longer enabled by default .
 	 * see https://github.com/alibaba/spring-cloud-alibaba/issues/2868
 	 */

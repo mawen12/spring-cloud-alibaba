@@ -58,6 +58,8 @@ import static com.alibaba.nacos.api.PropertyKeyConst.SERVER_ADDR;
 import static com.alibaba.nacos.api.PropertyKeyConst.USERNAME;
 
 /**
+ * Nacos服务发现属性，对应的属性前缀为{@code spring.cloud.nacos.discovery}
+ *
  * @author dungu.zpf
  * @author xiaojing
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
@@ -72,8 +74,9 @@ public class NacosDiscoveryProperties {
 	 * Prefix of {@link NacosDiscoveryProperties}.
 	 */
 	public static final String PREFIX = "spring.cloud.nacos.discovery";
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosDiscoveryProperties.class);
+
+	private static final Logger log = LoggerFactory.getLogger(NacosDiscoveryProperties.class);
+
 	private static final Pattern PATTERN = Pattern.compile("-(\\w)");
 
 	private static final String IPV4 = "IPv4";
@@ -81,163 +84,170 @@ public class NacosDiscoveryProperties {
 	private static final String IPV6 = "IPv6";
 
 	/**
-	 * nacos discovery server address.
+	 * Nacos 注册中心的服务地址
 	 */
 	private String serverAddr;
 
 	/**
-	 * the nacos authentication username.
+	 * Nacos 认证用户名
 	 */
 	private String username;
 
 	/**
-	 * the nacos authentication password.
+	 * Nacos 认证密码
 	 */
 	private String password;
 
 	/**
-	 * the domain name of a service, through which the server address can be dynamically
-	 * obtained.
+	 * 服务的域名，通过该域名可以动态获取服务地址
 	 */
 	private String endpoint;
 
 	/**
-	 * namespace, separation registry of different environments.
+	 * 命名空间，区分不同环境的注册中心，默认为public
 	 */
 	private String namespace;
 
 	/**
-	 * watch delay,duration to pull new service from nacos server.
+	 * 观察延迟，从Nacos服务器拉取新服务所需要的时间，超过这个时间代表超时，默认30s
+	 * 用于{@link com.alibaba.cloud.nacos.discovery.NacosDiscoveryHeartBeatPublisher}中调度任务的执行间隔
 	 */
 	private long watchDelay = 30000;
 
 	/**
-	 * nacos naming log file name.
+	 * Nacos 注册中心日志文件名称，文件默认位于{@code ${user.home}/nacos/logs/{logName}}
 	 */
 	private String logName;
 
 	/**
-	 * service name to registry.
+	 * 注册到Nacos的服务名称，从 PROPERTIES(spring.cloud.nacos.discovery.service) -> DEFAULT(spring.application.name) -> DEFAULT(null)
 	 */
 	@Value("${spring.cloud.nacos.discovery.service:${spring.application.name:}}")
 	private String service;
 
 	/**
-	 * weight for service instance, the larger the value, the larger the weight.
+	 * 当前服务实例的权重，值越大，权重越大，默认为1
 	 */
 	private float weight = 1;
 
 	/**
-	 * cluster name for nacos .
+	 * 当前实例所在的集群，默认为DEFAULT
 	 */
 	private String clusterName;
 
 	/**
-	 * group name for nacos.
+	 * 当前实例所在的分组，默认为DEFAULT_GROUP
 	 */
 	private String group = "DEFAULT_GROUP";
 
 	/**
-	 * naming load from local cache at application start. true is load.
+	 * 启动时是否从本地缓存加载注册中心项，默认为false
 	 */
 	private String namingLoadCacheAtStart = "false";
 
 	/**
-	 * extra metadata to register.
+	 * 额外需要注册的元信息
 	 */
 	private Map<String, String> metadata = new HashMap<>();
 
 	/**
-	 * if you just want to subscribe, but don't want to register your service, set it to
-	 * false.
+	 * 是否注册本地服务，如果只是想要订阅服务，而不像注册服务，需设置为false，默认为true
 	 */
 	private boolean registerEnabled = true;
 
 	/**
-	 * The ip address your want to register for your service instance, needn't to set it
-	 * if the auto detect ip works well.
+	 * 注册到Nacos上的当前实例ip，如果没有设置，则会自动检测ip
+	 *
 	 */
 	private String ip;
 
 	/**
-	 * which network interface's ip you want to register.
+	 * 注册到Nacos上的当前实例的网口ip
 	 */
 	private String networkInterface = "";
 
 	/**
-	 * choose IPv4 or IPv6,if you don't set it will choose IPv4.
-	 * When IPv6 is chosen but no IPv6 can be found, system will automatically find IPv4 to ensure there is an
-	 * available service address.
+	 * 注册实例所采用的ip类型，值有IPv4和IPv6，默认为IPv4。
+	 * 当选择了IPv6，但是没有找到IPv6，则会自动切换为IPv4查找ip。
 	 */
 	private String ipType;
 
 	/**
-	 * The port your want to register for your service instance, needn't to set it if the
-	 * auto detect port works well.
+	 * 当前服务实例注册的端口，如果没有设置，则自动检测端口
 	 */
 	private int port = -1;
 
 	/**
-	 * whether your service is a https service.
+	 * 服务是否为https，默认为false，即http
 	 */
 	private boolean secure = false;
 
 	/**
-	 * access key for namespace.
+	 * 命名空间的access key
 	 */
 	private String accessKey;
 
 	/**
-	 * secret key for namespace.
+	 * 命名空间的secret key
 	 */
 	private String secretKey;
 
 	/**
-	 * Heart beat interval. Time unit: millisecond.
+	 * 心跳间隔，单位为ms
 	 */
 	private Integer heartBeatInterval;
 
 	/**
-	 * Heart beat timeout. Time unit: millisecond.
+	 * 心跳超时，单位为ms
 	 */
 	private Integer heartBeatTimeout;
 
 	/**
-	 * Ip delete timeout. Time unit: millisecond.
+	 * ip删除超时，单位ms
 	 */
 	private Integer ipDeleteTimeout;
 
 	/**
-	 * If instance is enabled to accept request. The default value is true.
+	 * 注册的实例是否开始接受请求，默认为true
 	 */
 	private boolean instanceEnabled = true;
 
 	/**
-	 * If instance is ephemeral.The default value is true.
+	 * 注册的实例是否为临时，默认为true
 	 */
 	private boolean ephemeral = true;
 
 	/**
-	 * Whether to enable nacos failure tolerance. If enabled, nacos will return cached
-	 * values when exceptions occur.
+	 * 是否开启nacos失败容错，开启后，在发生异常时nacos会返回缓存数据
 	 */
 	private boolean failureToleranceEnabled;
 
 	/**
-	 * Throw exceptions during service registration if true, otherwise, log error
-	 * (defaults to true).
+	 * 注册失败时抛出异常，否则仅日志记录，默认为true
 	 */
 	private boolean failFast = true;
 
+	/**
+	 * 在设置{@link #ipType=IPv6}时，使用该类检测ipv6
+	 */
 	@Autowired
 	private InetIPv6Utils inetIPv6Utils;
 
+	/**
+	 * 在设置{@link #ipType=IPv4}时，使用该类检测ip
+	 */
 	@Autowired
 	private InetUtils inetUtils;
 
+	/**
+	 *
+	 */
 	@Autowired
 	private Environment environment;
 
+	/**
+	 * Nacos服务管理器
+	 */
 	@Autowired
 	private NacosServiceManager nacosServiceManager;
 
@@ -669,42 +679,86 @@ public class NacosDiscoveryProperties {
 		}
 	}
 
+	/**
+	 * 从 NacosDiscoveryProperties -> Properties，方便构造NamingService
+	 */
 	public Properties getNacosProperties() {
 		Properties properties = new Properties();
+		/**
+		 * Nacos服务地址
+		 */
 		properties.put(SERVER_ADDR, serverAddr);
+		/**
+		 * Nacos用户名
+		 */
 		properties.put(USERNAME, Objects.toString(username, ""));
+		/**
+		 * Nacos密码
+		 */
 		properties.put(PASSWORD, Objects.toString(password, ""));
+		/**
+		 * 注册的实例所属的命名空间
+		 */
 		properties.put(NAMESPACE, namespace);
+		/**
+		 * 本地日志文件名称
+		 */
 		properties.put(UtilAndComs.NACOS_NAMING_LOG_NAME, logName);
 
 		if (endpoint.contains(":")) {
+			/**
+			 * 如果端点包含了端口，则将其解析，分别设置到endpoint和endpoint_port
+			 */
 			int index = endpoint.indexOf(":");
 			properties.put(ENDPOINT, endpoint.substring(0, index));
 			properties.put(ENDPOINT_PORT, endpoint.substring(index + 1));
 		}
 		else {
+			/**
+			 * 不包含端口，则使用默认，对于http来说就是80端口，对于https来说就是443端口
+			 */
 			properties.put(ENDPOINT, endpoint);
 		}
 
+		/**
+		 * Nacos注册中心的访问key
+		 */
 		properties.put(ACCESS_KEY, accessKey);
+		/**
+		 * Nacos注册中心的密钥
+		 */
 		properties.put(SECRET_KEY, secretKey);
 		// only used for instance.setClusterName()
 //		properties.put(CLUSTER_NAME, clusterName);
+		/**
+		 * 是否在启动时加载本地注册中心缓存
+		 */
 		properties.put(NAMING_LOAD_CACHE_AT_START, namingLoadCacheAtStart);
 
+		/**
+		 * 将其他属性设置到属性中
+		 */
 		enrichNacosDiscoveryProperties(properties);
 		return properties;
 	}
 
 	private void enrichNacosDiscoveryProperties(Properties nacosDiscoveryProperties) {
-		Map<String, Object> properties = PropertySourcesUtils
-				.getSubProperties((ConfigurableEnvironment) environment, PREFIX);
-		properties.forEach((k, v) -> nacosDiscoveryProperties.putIfAbsent(resolveKey(k),
-				String.valueOf(v)));
+		/**
+		 * 从ENV中读取前缀为spring.cloud.nacos.discovery的属性，并将不在NacosDiscoveryProperties中的值加入
+		 */
+		Map<String, Object> properties = PropertySourcesUtils.getSubProperties((ConfigurableEnvironment) environment, PREFIX);
+		properties.forEach((k, v) -> nacosDiscoveryProperties.putIfAbsent(resolveKey(k), String.valueOf(v)));
 	}
+
 
 	private String resolveKey(String key) {
 		Matcher matcher = PATTERN.matcher(key);
+		/**
+		 * TODO by mawen 方法用途：也许可以将StringBuffer替换为StringBuilder
+		 *
+		 * 或许是因为存在多个线程访问，但是方法内线程封闭，是安全的，所以应该选择StringBuilder
+		 */
+		//
 		StringBuffer sb = new StringBuffer();
 		while (matcher.find()) {
 			matcher.appendReplacement(sb, matcher.group(1).toUpperCase());

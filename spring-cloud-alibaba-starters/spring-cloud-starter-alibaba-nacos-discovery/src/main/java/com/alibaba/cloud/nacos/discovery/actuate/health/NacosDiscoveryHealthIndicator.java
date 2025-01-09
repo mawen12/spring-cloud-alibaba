@@ -24,49 +24,61 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 
 /**
- * The {@link HealthIndicator} for Nacos Discovery.
+ * 基于Nacos服务发现的健康指标，基于Spring Boot Actuator的{@link HealthIndicator}的特定实现
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
- * @since 2.2.0
  * @see HealthIndicator
+ * @since 2.2.0
  */
 public class NacosDiscoveryHealthIndicator extends AbstractHealthIndicator {
 
-	/**
-	 * status up.
-	 */
-	private static final String STATUS_UP = "UP";
+    /**
+     * status up.
+     */
+    private static final String STATUS_UP = "UP";
 
-	/**
-	 * status down.
-	 */
-	private static final String STATUS_DOWN = "DOWN";
+    /**
+     * status down.
+     */
+    private static final String STATUS_DOWN = "DOWN";
 
-	private NacosServiceManager nacosServiceManager;
+    /**
+     * Nacos服务管理器，提供实例注册、服务订阅、服务维护等功能
+     */
+    private NacosServiceManager nacosServiceManager;
 
-	@Deprecated
-	private NamingService namingService;
+    /**
+     * 使用{@link NacosServiceManager} 替代
+     */
+    @Deprecated
+    private NamingService namingService;
 
-	public NacosDiscoveryHealthIndicator(NacosServiceManager nacosServiceManager) {
-		this.nacosServiceManager = nacosServiceManager;
-	}
+    public NacosDiscoveryHealthIndicator(NacosServiceManager nacosServiceManager) {
+        this.nacosServiceManager = nacosServiceManager;
+    }
 
-	@Deprecated
-	public NacosDiscoveryHealthIndicator(NamingService namingService) {
-		this.namingService = namingService;
-	}
+    @Deprecated
+    public NacosDiscoveryHealthIndicator(NamingService namingService) {
+        this.namingService = namingService;
+    }
 
-	@Override
-	protected void doHealthCheck(Health.Builder builder) throws Exception {
-		// Just return "UP" or "DOWN"
-		String status = nacosServiceManager.getNamingService().getServerStatus();
-		// Set the status to Builder
-		builder.status(status);
-		switch (status) {
-		case STATUS_UP -> builder.up();
-		case STATUS_DOWN -> builder.down();
-		default -> builder.unknown();
-		}
-	}
+    @Override
+    protected void doHealthCheck(Health.Builder builder) throws Exception {
+        // Just return "UP" or "DOWN"
+        /**
+         * 读取服务端状态，客户端与服务端正常通信，则是UP；否则是DOWN
+         */
+        String status = nacosServiceManager.getNamingService().getServerStatus();
+        // Set the status to Builder
+        /**
+         * TODO by mawen 无需调用，因为以下方法也做了同样的事
+         */
+        builder.status(status);
+        switch (status) {
+            case STATUS_UP -> builder.up();
+            case STATUS_DOWN -> builder.down();
+            default -> builder.unknown();
+        }
+    }
 
 }

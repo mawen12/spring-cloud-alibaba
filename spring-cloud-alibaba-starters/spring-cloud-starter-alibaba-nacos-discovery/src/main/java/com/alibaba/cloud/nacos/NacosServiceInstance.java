@@ -20,25 +20,55 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
 
+import com.alibaba.nacos.api.naming.pojo.Instance;
 import org.springframework.cloud.client.DefaultServiceInstance;
 import org.springframework.cloud.client.ServiceInstance;
 
 /**
+ * 基于Nacos的服务实例，这是基于Spring Cloud Common的{@link ServiceInstance}的特定实现
+ *
  * @author xiaojing
  * @author changjin wei(魏昌进)
  */
 public class NacosServiceInstance implements ServiceInstance {
 
+	/**
+	 * 实例所属的服务Id，对应到Nacos就是{@link com.alibaba.nacos.api.naming.pojo.Service#name}
+	 */
 	private String serviceId;
 
+	/**
+	 * 实例Id，对应到Nacos就是{@link Instance#instanceId}
+	 */
 	private String instanceId;
 
+	/**
+	 * 实例ip，对应到Nacos就是{@link Instance#ip}
+	 */
 	private String host;
 
+	/**
+	 * 实例端口，对应到Nacos就是{@link Instance#port}
+	 */
 	private int port;
 
+	/**
+	 * 是否安全
+	 */
 	private boolean secure;
 
+	/**
+	 * 实例的元信息，此处不仅包含{@link Instance#metadata}，还额外包含以下信息：
+	 * <ul>
+	 *     <li>nacos.instanceId</li>
+	 *     <li>nacos.weight</li>
+	 *     <li>nacos.healthy</li>
+	 *     <li>nacos.cluster</li>
+	 *     <li>nacos.ephemeral</li>
+	 *     <li>secure</li>
+	 * </ul>
+	 * @see com.alibaba.cloud.nacos.discovery.NacosServiceDiscovery#hostToServiceInstance(Instance, String)
+	 */
 	private Map<String, String> metadata;
 
 	@Override

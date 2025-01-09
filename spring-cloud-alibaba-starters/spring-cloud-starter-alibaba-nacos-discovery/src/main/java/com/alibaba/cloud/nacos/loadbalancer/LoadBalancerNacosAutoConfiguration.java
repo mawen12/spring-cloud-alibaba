@@ -24,6 +24,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * 基于Nacos的负载均衡自动配置，该配置开启的条件如下：
+ * <ul>
+ *     <li>PROPERTIES(spring.cloud.loadbalancer.nacos.enabled)=true</li>
+ *     <li>PROPERTIES(spring.cloud.nacos.discovery.enabled)=true</li>
+ * </ul>
+ * <p>
+ *
+ *
  * {@link org.springframework.boot.autoconfigure.EnableAutoConfiguration
  * Auto-configuration} that sets up LoadBalancer for Nacos.
  */

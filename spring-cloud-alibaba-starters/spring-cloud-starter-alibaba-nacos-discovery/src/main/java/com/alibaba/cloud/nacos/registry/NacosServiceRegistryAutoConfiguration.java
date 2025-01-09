@@ -36,44 +36,84 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * Nacos服务注册自动配置，该配置开启的条件为：
+ * <ul>
+ *     <li>PROPERTIES(spring.cloud.nacos.discovery.enabled)=true</li>
+ *     <li>PROPERTIES(spring.cloud.service-registry.auto-registration.enabled)=true</li>
+ * </ul>
+ * <p>
+ * 触发顺序为：{@link AutoServiceRegistrationConfiguration}, {@link AutoServiceRegistrationAutoConfiguration}, {@link NacosDiscoveryAutoConfiguration} -> This
+ *
  * @author xiaojing
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties
 @ConditionalOnNacosDiscoveryEnabled
-@ConditionalOnProperty(value = "spring.cloud.service-registry.auto-registration.enabled",
-		matchIfMissing = true)
+@ConditionalOnProperty(value = "spring.cloud.service-registry.auto-registration.enabled", matchIfMissing = true)
 @AutoConfigureAfter({ AutoServiceRegistrationConfiguration.class,
 		AutoServiceRegistrationAutoConfiguration.class,
 		NacosDiscoveryAutoConfiguration.class })
 public class NacosServiceRegistryAutoConfiguration {
 
+	/**
+	 * 注册Nacos服务注册器，负责实例注册，其依赖{@link NacosServiceManager}和{@link NacosDiscoveryProperties}。
+	 * 因此该配置类需要在{@link NacosDiscoveryAutoConfiguration}之后注册
+	 *
+	 * @param nacosServiceManager
+	 * @param nacosDiscoveryProperties
+	 * @return
+	 */
 	@Bean
 	public NacosServiceRegistry nacosServiceRegistry(
+			/**
+			 * 负责执行实际的实例注册
+			 */
 			NacosServiceManager nacosServiceManager,
+			/**
+			 * 负责提供实例的相关信息
+			 */
 			NacosDiscoveryProperties nacosDiscoveryProperties) {
 		return new NacosServiceRegistry(nacosServiceManager, nacosDiscoveryProperties);
 	}
 
+	/**
+	 * 注册Nacos实例类，该实例被用于Spring Cloud场景的被注册的实例，
+	 * 其仅在存在Bean(AutoServiceRegistrationProperties)时触发
+	 *
+	 * @param registrationCustomizers
+	 * @param nacosDiscoveryProperties
+	 * @param context
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnBean(AutoServiceRegistrationProperties.class)
 	public NacosRegistration nacosRegistration(
 			ObjectProvider<List<NacosRegistrationCustomizer>> registrationCustomizers,
 			NacosDiscoveryProperties nacosDiscoveryProperties,
 			ApplicationContext context) {
-		return new NacosRegistration(registrationCustomizers.getIfAvailable(),
-				nacosDiscoveryProperties, context);
+		return new NacosRegistration(registrationCustomizers.getIfAvailable(), nacosDiscoveryProperties, context);
 	}
 
+	/**
+	 * 注册Nacos自动服务注册类，仅用于Spring Cloud的自动服务注册场景
+	 * 其仅在存在Bean(AutoServiceRegistrationProperties)时触发
+	 *
+	 * @param registry
+	 * @param autoServiceRegistrationProperties
+	 * @param registration
+	 * @return
+	 */
 	@Bean
 	@ConditionalOnBean(AutoServiceRegistrationProperties.class)
 	public NacosAutoServiceRegistration nacosAutoServiceRegistration(
 			NacosServiceRegistry registry,
+			/**
+			 * 自动服务注册的属性，用于将定义自动服务注册的行为
+			 */
 			AutoServiceRegistrationProperties autoServiceRegistrationProperties,
 			NacosRegistration registration) {
-		return new NacosAutoServiceRegistration(registry,
-				autoServiceRegistrationProperties, registration);
+		return new NacosAutoServiceRegistration(registry, autoServiceRegistrationProperties, registration);
 	}
 
 }

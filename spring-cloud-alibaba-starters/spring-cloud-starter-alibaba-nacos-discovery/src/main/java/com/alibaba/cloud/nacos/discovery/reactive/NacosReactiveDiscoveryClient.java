@@ -38,8 +38,7 @@ import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
  **/
 public class NacosReactiveDiscoveryClient implements ReactiveDiscoveryClient {
 
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosReactiveDiscoveryClient.class);
+	private static final Logger log = LoggerFactory.getLogger(NacosReactiveDiscoveryClient.class);
 
 	private NacosServiceDiscovery serviceDiscovery;
 

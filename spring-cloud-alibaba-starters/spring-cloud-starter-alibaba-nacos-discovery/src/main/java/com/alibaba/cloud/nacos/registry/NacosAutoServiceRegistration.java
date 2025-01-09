@@ -29,15 +29,20 @@ import org.springframework.context.event.EventListener;
 import org.springframework.util.Assert;
 
 /**
+ * Nacos自动服务注册，基于Spring Cloud Common{@link AbstractAutoServiceRegistration}的特定实现。
+ * 仅在PROPERTIES(spring.cloud.nacos.discovery.registerEnabled)=true时，才会注册
+ *
  * @author xiaojing
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  */
 public class NacosAutoServiceRegistration
 		extends AbstractAutoServiceRegistration<Registration> {
 
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosAutoServiceRegistration.class);
+	private static final Logger log = LoggerFactory.getLogger(NacosAutoServiceRegistration.class);
 
+	/**
+	 * 保存待注册实例的信息
+	 */
 	private NacosRegistration registration;
 
 	public NacosAutoServiceRegistration(ServiceRegistry<Registration> serviceRegistry,
@@ -54,6 +59,9 @@ public class NacosAutoServiceRegistration
 
 	@Override
 	protected NacosRegistration getRegistration() {
+		/**
+		 * 如果当前待注册的实例未指定端口，且自动服务注册制定了，则采用自定服务的端口
+		 */
 		if (this.registration.getPort() < 0 && this.getPort().get() > 0) {
 			this.registration.setPort(this.getPort().get());
 		}
@@ -66,15 +74,28 @@ public class NacosAutoServiceRegistration
 		return null;
 	}
 
+	/**
+	 * 进行服务实例注册，使用{@link ServiceRegistry#register(Registration)}方法来注册，
+	 * 且仅在PROPERTIES(spring.cloud.nacos.discovery.registerEnabled)=true时进行注册
+	 */
 	@Override
 	protected void register() {
+		/**
+		 * 如果PROPERTIES(spring.cloud.nacos.discovery.registerEnabled)=false，则代表不进行注册
+		 */
 		if (!this.registration.getNacosDiscoveryProperties().isRegisterEnabled()) {
 			log.debug("Registration disabled.");
 			return;
 		}
+		/**
+		 * 检查端口
+		 */
 		if (this.registration.getPort() < 0) {
 			this.registration.setPort(getPort().get());
 		}
+		/**
+		 * 使用{@link ServiceRegistry#register(Registration)}进行实例注册
+		 */
 		super.register();
 	}
 

@@ -138,6 +138,12 @@
                 <scope>import</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-core</artifactId>
+                <version>3.2.5</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

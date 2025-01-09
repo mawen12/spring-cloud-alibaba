@@ -21,6 +21,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * Nacos服务自动配置，该配置的启动条件有两个：
+ * <ul>
+ *     <li>PROPERTIES(spring.cloud.discovery.enabled)=true</li>
+ *     <li>PROPERTIES(spring.cloud.nacos.discovery.enabled)=true</li>
+ * </ul>
+ * <p>
+ * 该类负责注册服务相关的类，此处仅注册{@link NacosServiceManager}。
+ *
  * @author yuhuangbin
  */
 @Configuration(proxyBeanMethods = false)
@@ -28,6 +36,12 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnNacosDiscoveryEnabled
 public class NacosServiceAutoConfiguration {
 
+	/**
+	 * 将Nacos服务管理器注册为Bean，该类提供了服务注册、服务订阅、服务维护等功能。
+	 * {@link NacosServiceManager}仅由本类进行注册，因此无法额外添加{@link org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean}
+	 *
+	 * @return
+	 */
 	@Bean
 	public NacosServiceManager nacosServiceManager() {
 		return new NacosServiceManager();

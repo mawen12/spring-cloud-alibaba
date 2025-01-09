@@ -33,6 +33,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.util.StringUtils;
 
 /**
+ * 基于Nacos的注册实例，这是基于Spring Cloud Common的{@link Registration}的特定实现
+ * 其作为Spring Cloud场景下的实例，底层为{@link NacosDiscoveryProperties}
+ *
  * @author xiaojing
  * @author changjin wei(魏昌进)
  */
@@ -58,10 +61,20 @@ public class NacosRegistration implements Registration {
 	 */
 	public static final String MANAGEMENT_ENDPOINT_BASE_PATH = "management.endpoints.web.base-path";
 
+	/**
+	 * 用户自定义的Nacos注册自定义
+	 */
 	private List<NacosRegistrationCustomizer> registrationCustomizers;
 
+	/**
+	 * 使用该属性的service, group, clusterName, ip, port, metadata等信息构造要注册的服务，
+	 * 并且需要对metadata进行扩展
+	 */
 	private NacosDiscoveryProperties nacosDiscoveryProperties;
 
+	/**
+	 * Spring的应用上下文，用于通过{@link Environment}获取特定属性值
+	 */
 	private ApplicationContext context;
 
 	public NacosRegistration(List<NacosRegistrationCustomizer> registrationCustomizers,
@@ -72,22 +85,54 @@ public class NacosRegistration implements Registration {
 		this.context = context;
 	}
 
+	/**
+	 * 对注册服务的元数据进行扩展，主要扩展以下内容：
+	 * <ul>
+	 *     <li>management.endpoints.web.base-path</li>
+	 *     <li>management.server.port</li>
+	 *     <li>management.server.servlet.context-path</li>
+	 *     <li>management.server.address</li>
+	 *     <li>spring.cloud.nacos.discovery.heartBeatInterval</li>
+	 *     <li>spring.cloud.nacos.discovery.heartBeatTimeout</li>
+	 *     <li>spring.cloud.nacos.discovery.ipDeleteTimeout</li>
+	 * </ul>
+	 */
 	@PostConstruct
 	public void init() {
-
+		/**
+		 * 获取要注册实例的元信息
+		 */
 		Map<String, String> metadata = nacosDiscoveryProperties.getMetadata();
+		/**
+		 * 从Spring上下文中获取特定属性的值
+		 */
 		Environment env = context.getEnvironment();
 
+		/**
+		 * 从 PROPERTIES(management.endpoints.web.base-path) 解析管理端口路径，
+		 * 如果有值，则写入元数据
+		 */
 		String endpointBasePath = env.getProperty(MANAGEMENT_ENDPOINT_BASE_PATH);
 		if (StringUtils.hasLength(endpointBasePath)) {
 			metadata.put(MANAGEMENT_ENDPOINT_BASE_PATH, endpointBasePath);
 		}
 
+		/**
+		 * 从 PROPERTIES(management.server.port) 解析管理端口，仅在开启actuator时才解析
+		 */
 		Integer managementPort = ManagementServerPortUtils.getPort(context);
 		if (null != managementPort) {
+			/**
+			 * 写入元信息
+			 */
 			metadata.put(MANAGEMENT_PORT, managementPort.toString());
-			String contextPath = env
-					.getProperty("management.server.servlet.context-path");
+			/**
+			 * 从 PROPERTIES(management.server.servlet.context-path) 解析上下文路径
+			 */
+			String contextPath = env.getProperty("management.server.servlet.context-path");
+			/**
+			 * 从 PROPERTIES(management.server.address) 解析地址
+			 */
 			String address = env.getProperty("management.server.address");
 			if (StringUtils.hasLength(contextPath)) {
 				metadata.put(MANAGEMENT_CONTEXT_PATH, contextPath);
@@ -97,23 +142,33 @@ public class NacosRegistration implements Registration {
 			}
 		}
 
+		/**
+		 * 从 PROPERTIES(spring.cloud.nacos.discovery.heartBeatInterval) 解析心跳间隔
+		 * 如果有值，则写入元信息
+		 */
 		if (null != nacosDiscoveryProperties.getHeartBeatInterval()) {
-			metadata.put(PreservedMetadataKeys.HEART_BEAT_INTERVAL,
-					nacosDiscoveryProperties.getHeartBeatInterval().toString());
+			metadata.put(PreservedMetadataKeys.HEART_BEAT_INTERVAL, nacosDiscoveryProperties.getHeartBeatInterval().toString());
 		}
+		/**
+		 * 从 PROPERTIES(spring.cloud.nacos.discovery.heartBeatTimeout) 解析心跳超时
+		 * 如果有值，则写入元信息
+		 */
 		if (null != nacosDiscoveryProperties.getHeartBeatTimeout()) {
-			metadata.put(PreservedMetadataKeys.HEART_BEAT_TIMEOUT,
-					nacosDiscoveryProperties.getHeartBeatTimeout().toString());
+			metadata.put(PreservedMetadataKeys.HEART_BEAT_TIMEOUT, nacosDiscoveryProperties.getHeartBeatTimeout().toString());
 		}
+		/**
+		 * 从 PROPERTIES(spring.cloud.nacos.discovery.ipDeleteTimeout) 解析ip删除超时
+		 */
 		if (null != nacosDiscoveryProperties.getIpDeleteTimeout()) {
-			metadata.put(PreservedMetadataKeys.IP_DELETE_TIMEOUT,
-					nacosDiscoveryProperties.getIpDeleteTimeout().toString());
+			metadata.put(PreservedMetadataKeys.IP_DELETE_TIMEOUT, nacosDiscoveryProperties.getIpDeleteTimeout().toString());
 		}
+		/**
+		 * 执行自定义的注册器
+		 */
 		customize(registrationCustomizers);
 	}
 
-	protected void customize(
-			List<NacosRegistrationCustomizer> registrationCustomizers) {
+	protected void customize(List<NacosRegistrationCustomizer> registrationCustomizers) {
 		if (registrationCustomizers != null) {
 			for (NacosRegistrationCustomizer customizer : registrationCustomizers) {
 				customizer.customize(this);
@@ -175,10 +230,12 @@ public class NacosRegistration implements Registration {
 	public String toString() {
 		NacosDiscoveryProperties safeProp = new NacosDiscoveryProperties();
 		BeanUtils.copyProperties(safeProp, nacosDiscoveryProperties);
+		/**
+		 * 对用户名和密码进行加密
+		 */
 		safeProp.setUsername("******");
 		safeProp.setPassword("******");
-		return "NacosRegistration{" + "nacosDiscoveryProperties="
-				+ safeProp + '}';
+		return "NacosRegistration{" + "nacosDiscoveryProperties=" + safeProp + '}';
 	}
 
 }

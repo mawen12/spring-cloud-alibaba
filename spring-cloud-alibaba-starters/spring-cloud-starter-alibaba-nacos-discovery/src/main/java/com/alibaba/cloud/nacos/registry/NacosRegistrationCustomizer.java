@@ -17,12 +17,15 @@
 package com.alibaba.cloud.nacos.registry;
 
 /**
+ * Nacos服务注册自定义器
+ *
  * @author L.cm
  */
 public interface NacosRegistrationCustomizer {
 
 	/**
-	 * customize NacosRegistration.
+	 * 对Nacos服务注册进行自定义，本质上是对{@link com.alibaba.cloud.nacos.NacosDiscoveryProperties#metadata}进行扩展
+	 *
 	 * @param registration NacosRegistration
 	 */
 	void customize(NacosRegistration registration);

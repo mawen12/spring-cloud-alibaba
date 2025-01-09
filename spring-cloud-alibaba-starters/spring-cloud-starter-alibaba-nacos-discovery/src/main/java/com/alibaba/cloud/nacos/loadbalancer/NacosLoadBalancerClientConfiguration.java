@@ -42,6 +42,14 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 
 /**
+ * 基于Nacos的负载均衡客户端配置，该配置开启的条件如下：
+ * <ul>
+ *     <li>PROPERTIES(spring.cloud.loadbalancer.nacos.enabled)=true</li>
+ *     <li>PROPERTIES(spring.cloud.nacos.discovery.enabled)=true</li>
+ * </ul>
+ * <p>
+ * <p>
+ * <p>
  * {@link ServiceInstanceListSupplier} don't use cache.<br>
  * <br>
  * 1. LoadBalancerCache causes information such as the weight of the service instance to
@@ -56,80 +64,144 @@ import org.springframework.core.env.Environment;
 @ConditionalOnDiscoveryEnabled
 public class NacosLoadBalancerClientConfiguration {
 
-	private static final int REACTIVE_SERVICE_INSTANCE_SUPPLIER_ORDER = 183827465;
+    private static final int REACTIVE_SERVICE_INSTANCE_SUPPLIER_ORDER = 183827465;
 
-	@Bean
-	@ConditionalOnMissingBean
-	public ReactorLoadBalancer<ServiceInstance> nacosLoadBalancer(Environment environment,
-			LoadBalancerClientFactory loadBalancerClientFactory,
-			NacosDiscoveryProperties nacosDiscoveryProperties,
-			InetIPv6Utils inetIPv6Utils,
-			List<ServiceInstanceFilter> serviceInstanceFilters,
-			List<LoadBalancerAlgorithm> loadBalancerAlgorithms) {
-		String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME);
-		Map<String, LoadBalancerAlgorithm> loadBalancerAlgorithmMap = new HashMap<>();
-		loadBalancerAlgorithms.forEach(loadBalancerAlgorithm -> {
-			if (!loadBalancerAlgorithmMap.containsKey(loadBalancerAlgorithm.getServiceId())) {
-				loadBalancerAlgorithmMap.put(loadBalancerAlgorithm.getServiceId(), loadBalancerAlgorithm);
-			}
-		});
-		return new NacosLoadBalancer(
-				loadBalancerClientFactory.getLazyProvider(name,
-						ServiceInstanceListSupplier.class),
-				name, nacosDiscoveryProperties, inetIPv6Utils,
-				serviceInstanceFilters, loadBalancerAlgorithmMap);
-	}
+    @Bean
+    @ConditionalOnMissingBean
+    public ReactorLoadBalancer<ServiceInstance> nacosLoadBalancer(Environment environment,
+                                                                  LoadBalancerClientFactory loadBalancerClientFactory,
+                                                                  NacosDiscoveryProperties nacosDiscoveryProperties,
+                                                                  InetIPv6Utils inetIPv6Utils,
+                                                                  List<ServiceInstanceFilter> serviceInstanceFilters,
+                                                                  List<LoadBalancerAlgorithm> loadBalancerAlgorithms) {
+        /**
+         * 从 PROPERTIES(loadbalancer.client.name) 读取负载均衡客户端名称
+         */
+        String name = environment.getProperty(LoadBalancerClientFactory.PROPERTY_NAME);
+        /**
+         * Map<服务名称, 负载均衡算法>
+         */
+        Map<String, LoadBalancerAlgorithm> loadBalancerAlgorithmMap = new HashMap<>();
+        /**
+         * 转换为Map
+         */
+        loadBalancerAlgorithms.forEach(loadBalancerAlgorithm -> {
+            if (!loadBalancerAlgorithmMap.containsKey(loadBalancerAlgorithm.getServiceId())) {
+                loadBalancerAlgorithmMap.put(loadBalancerAlgorithm.getServiceId(), loadBalancerAlgorithm);
+            }
+        });
 
-	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnReactiveDiscoveryEnabled
-	@Order(REACTIVE_SERVICE_INSTANCE_SUPPLIER_ORDER)
-	public static class ReactiveSupportConfiguration {
+        return new NacosLoadBalancer(
+                loadBalancerClientFactory.getLazyProvider(name, ServiceInstanceListSupplier.class),
+                name, nacosDiscoveryProperties, inetIPv6Utils,
+                serviceInstanceFilters, loadBalancerAlgorithmMap);
+    }
 
-		@Bean
-		@ConditionalOnBean(ReactiveDiscoveryClient.class)
-		@ConditionalOnMissingBean
-		@ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "default", matchIfMissing = true)
-		public ServiceInstanceListSupplier discoveryClientServiceInstanceListSupplier(
-				ConfigurableApplicationContext context) {
-			return ServiceInstanceListSupplier.builder().withDiscoveryClient()
-					.build(context);
-		}
+    /**
+     * 注册异步非阻塞的配置，触发条件为：
+     * <ul>
+     *     <li>CLASS(org.springframework.web.reactive.function.client.WebClient)</li>
+     *     <li>PROPERTIES(spring.cloud.discovery.reactive.enabled)=true</li>
+     * </ul>
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnReactiveDiscoveryEnabled
+    @Order(REACTIVE_SERVICE_INSTANCE_SUPPLIER_ORDER)
+    public static class ReactiveSupportConfiguration {
 
-		@Bean
-		@ConditionalOnBean(ReactiveDiscoveryClient.class)
-		@ConditionalOnMissingBean
-		@ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "zone-preference")
-		public ServiceInstanceListSupplier zonePreferenceDiscoveryClientServiceInstanceListSupplier(
-				ConfigurableApplicationContext context) {
-			return ServiceInstanceListSupplier.builder().withDiscoveryClient()
-					.withZonePreference().build(context);
-		}
+        /**
+         * 注册异步的服务实例列表获取器，基于默认的行为，该方法开启的条件如下：
+         * <ul>
+         *     <li>BEAN(ReactiveDiscoveryClient)</li>
+         *     <li>PROPERTIES(spring.cloud.loadbalancer.configurations)=default -> DEFAULT(default)</li>
+         * </ul>
+         * <p>
+         * 该方法上使用{@link ConditionalOnMissingBean},防止Bean的重复注册
+         *
+         * @param context
+         * @return
+         */
+        @Bean
+        @ConditionalOnBean(ReactiveDiscoveryClient.class)
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "default", matchIfMissing = true)
+        public ServiceInstanceListSupplier discoveryClientServiceInstanceListSupplier(
+                ConfigurableApplicationContext context) {
+            return ServiceInstanceListSupplier.builder().withDiscoveryClient().build(context);
+        }
 
-	}
+        /**
+         * 注册异步的服务实例列表获取器，基于默认的行为，该方法开启的条件如下：
+         * <ul>
+         *     <li>BEAN(ReactiveDiscoveryClient)</li>
+         *     <li>PROPERTIES(spring.cloud.loadbalancer.configurations)=zone-preference</li>
+         * </ul>
+         * <p>
+         * 该方法上使用{@link ConditionalOnMissingBean},防止Bean的重复注册
+         *
+         * @param context
+         * @return
+         */
+        @Bean
+        @ConditionalOnBean(ReactiveDiscoveryClient.class)
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "zone-preference")
+        public ServiceInstanceListSupplier zonePreferenceDiscoveryClientServiceInstanceListSupplier(
+                ConfigurableApplicationContext context) {
+            return ServiceInstanceListSupplier.builder().withDiscoveryClient().withZonePreference().build(context);
+        }
 
-	@Configuration(proxyBeanMethods = false)
-	@ConditionalOnBlockingDiscoveryEnabled
-	@Order(REACTIVE_SERVICE_INSTANCE_SUPPLIER_ORDER + 1)
-	public static class BlockingSupportConfiguration {
+    }
 
-		@Bean
-		@ConditionalOnBean(DiscoveryClient.class)
-		@ConditionalOnMissingBean
-		@ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "default", matchIfMissing = true)
-		public ServiceInstanceListSupplier discoveryClientServiceInstanceListSupplier(
-				ConfigurableApplicationContext context) {
-			return ServiceInstanceListSupplier.builder().withBlockingDiscoveryClient()
-					.build(context);
-		}
+    /**
+     * 负责同步阻塞的配置，触发条件为：
+     * <ul>
+     *     <li>PROPERTIES(spring.cloud.discovery.blocking.enabled)=true</li>
+     * </ul>
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnBlockingDiscoveryEnabled
+    @Order(REACTIVE_SERVICE_INSTANCE_SUPPLIER_ORDER + 1)
+    public static class BlockingSupportConfiguration {
 
-		@Bean
-		@ConditionalOnBean(DiscoveryClient.class)
-		@ConditionalOnMissingBean
-		@ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "zone-preference")
-		public ServiceInstanceListSupplier zonePreferenceDiscoveryClientServiceInstanceListSupplier(
-				ConfigurableApplicationContext context) {
-			return ServiceInstanceListSupplier.builder().withBlockingDiscoveryClient()
-					.withZonePreference().build(context);
-		}
-	}
+        /**
+         * 注册同步的服务实例列表获取器，基于默认的行为，该方法开启的条件如下：
+         * <ul>
+         *     <li>BEAN(DiscoveryClient)</li>
+         *     <li>PROPERTIES(spring.cloud.loadbalancer.configurations)=default -> DEFAULT(default)</li>
+         * </ul>
+         * <p>
+         * 该方法上使用{@link ConditionalOnMissingBean},防止Bean的重复注册
+         *
+         * @param context
+         * @return
+         */
+        @Bean
+        @ConditionalOnBean(DiscoveryClient.class)
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "default", matchIfMissing = true)
+        public ServiceInstanceListSupplier discoveryClientServiceInstanceListSupplier(ConfigurableApplicationContext context) {
+            return ServiceInstanceListSupplier.builder().withBlockingDiscoveryClient().build(context);
+        }
+
+        /**
+         * 注册同步的服务实例获取列表，基于区域偏好，该方法开启的条件如下：
+         * <ul>
+         *     <li>Bean(DiscoveryClient)</li>
+         *     <li>PROPERTIES(spring.cloud.loadbalancer.configurations)=zone-preference</li>
+         * </ul>
+         * <p>
+         * 该方法上使用{@link ConditionalOnMissingBean},防止Bean的重复注册
+         *
+         * @param context
+         * @return
+         */
+        @Bean
+        @ConditionalOnBean(DiscoveryClient.class)
+        @ConditionalOnMissingBean
+        @ConditionalOnProperty(value = "spring.cloud.loadbalancer.configurations", havingValue = "zone-preference")
+        public ServiceInstanceListSupplier zonePreferenceDiscoveryClientServiceInstanceListSupplier(ConfigurableApplicationContext context) {
+            return ServiceInstanceListSupplier.builder().withBlockingDiscoveryClient().withZonePreference().build(context);
+        }
+    }
 }

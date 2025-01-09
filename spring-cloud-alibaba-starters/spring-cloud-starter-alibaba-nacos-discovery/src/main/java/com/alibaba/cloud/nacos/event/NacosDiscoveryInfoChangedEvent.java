@@ -21,12 +21,13 @@ import com.alibaba.cloud.nacos.NacosDiscoveryProperties;
 import org.springframework.context.ApplicationEvent;
 
 /**
+ * Nacos服务发现属性信息表更事件，事件内容为{@link NacosDiscoveryProperties}
+ *
  * @author yuhuangbin
  */
 public class NacosDiscoveryInfoChangedEvent extends ApplicationEvent {
 
-	public NacosDiscoveryInfoChangedEvent(
-			NacosDiscoveryProperties nacosDiscoveryProperties) {
+	public NacosDiscoveryInfoChangedEvent(NacosDiscoveryProperties nacosDiscoveryProperties) {
 		super(nacosDiscoveryProperties);
 	}
 

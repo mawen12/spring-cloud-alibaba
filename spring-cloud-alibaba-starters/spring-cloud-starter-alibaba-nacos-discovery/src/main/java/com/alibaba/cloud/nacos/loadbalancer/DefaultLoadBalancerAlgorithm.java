@@ -25,12 +25,16 @@ import org.springframework.cloud.client.loadbalancer.Request;
 import org.springframework.core.Ordered;
 
 /**
- * This is a default implementation of load balancing algorithm.
- * use {@link com.alibaba.cloud.nacos.balancer.NacosBalancer}
+ * 默认的负载均衡算法实现，底层基于{@link NacosBalancer}的基于权重的随机选择算法。
+ * 该算法仅会从权重>=0且健康状态的实例中随机选择
  *
  * @author <a href="mailto:zhangbin1010@qq.com">zhangbinhub</a>
  */
 public class DefaultLoadBalancerAlgorithm implements LoadBalancerAlgorithm {
+	/**
+	 * 返回默认值，即DEFAULT(defaultServiceId)
+	 * @return
+	 */
 	@Override
 	public String getServiceId() {
 		return LoadBalancerAlgorithm.DEFAULT_SERVICE_ID;
@@ -38,9 +42,17 @@ public class DefaultLoadBalancerAlgorithm implements LoadBalancerAlgorithm {
 
 	@Override
 	public ServiceInstance getInstance(Request<?> request, List<ServiceInstance> serviceInstances) {
+		/**
+		 * 使用基于权重的随机选择算法，其中仅会选择权重>0，并且健康状态的实例中随机选择
+		 */
 		return NacosBalancer.getHostByRandomWeight3(serviceInstances);
 	}
 
+	/**
+	 * 返回最低优先级
+	 *
+	 * @return
+	 */
 	@Override
 	public int getOrder() {
 		return Ordered.LOWEST_PRECEDENCE;

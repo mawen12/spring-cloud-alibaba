@@ -23,8 +23,7 @@ import org.springframework.cloud.client.loadbalancer.Request;
 import org.springframework.core.Ordered;
 
 /**
- * Load Balancer algorithm interface.
- * When expanding the load balancing algorithm, implement this interface and register it as a bean.
+ * 负载均衡算法接口
  *
  * @author <a href="mailto:zhangbin1010@qq.com">zhangbinhub</a>
  */
@@ -34,7 +33,19 @@ public interface LoadBalancerAlgorithm extends Ordered {
 	 */
 	String DEFAULT_SERVICE_ID = "defaultServiceId";
 
+	/**
+	 * 返回服务名称
+	 *
+	 * @return
+	 */
 	String getServiceId();
 
+	/**
+	 * 根据请求和实例信息集合，通过负载负载均衡算法，返回一个实例
+	 *
+	 * @param request
+	 * @param serviceInstances
+	 * @return
+	 */
 	ServiceInstance getInstance(Request<?> request, List<ServiceInstance> serviceInstances);
 }

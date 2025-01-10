@@ -16,6 +16,10 @@
 
 package com.alibaba.cloud.nacos;
 
+/**
+ * 指定了Spring Cloud生态下Nacos配置属性前缀，
+ * 仅在Spring Cloud环境下才会加载
+ */
 public class SpringCloudNacosPropertiesPrefixProvider implements NacosPropertiesPrefixProvider {
 
 	@Override

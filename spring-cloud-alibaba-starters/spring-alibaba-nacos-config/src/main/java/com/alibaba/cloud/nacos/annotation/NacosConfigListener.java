@@ -21,12 +21,21 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+/**
+ * Nacos配置监听器注解
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface NacosConfigListener {
 
+	/**
+	 * @return 监听的配置Id
+	 */
 	String dataId();
 
+	/**
+	 * @return 监听的分组
+	 */
 	String group();
 
 	String key() default "";

@@ -56,14 +56,22 @@ import org.springframework.core.annotation.MergedAnnotations;
 import org.springframework.core.type.MethodMetadata;
 import org.springframework.util.ReflectionUtils;
 
+/**
+ * Nacos注解处理器
+ */
 public class NacosAnnotationProcessor implements BeanPostProcessor, PriorityOrdered, ApplicationContextAware {
 
+	/**
+	 * Nacos配置管理器，提供服务的相关操作
+	 */
 	private NacosConfigManager nacosConfigManager;
 
+	/**
+	 * Spring应用上下文
+	 */
 	private ApplicationContext applicationContext;
 
-	private final static Logger log = LoggerFactory
-			.getLogger(NacosAnnotationProcessor.class);
+	private final static Logger log = LoggerFactory.getLogger(NacosAnnotationProcessor.class);
 
 	@Override
 	public int getOrder() {
@@ -71,22 +79,40 @@ public class NacosAnnotationProcessor implements BeanPostProcessor, PriorityOrde
 	}
 
 	private Map<String, TargetRefreshable> targetListenerMap = new ConcurrentHashMap<>();
+
+	/**
+	 * Map<dataId+group, AtomicReference<配置内容>>，用于缓存
+	 */
 	private Map<String, AtomicReference<String>> groupKeyCache = new ConcurrentHashMap<>();
 
 	private String getGroupKeyContent(String dataId, String group) throws Exception {
+		/**
+		 * 如果缓存中存在，则直接从缓存中获取
+		 */
 		if (groupKeyCache.containsKey(GroupKey.getKey(dataId, group))) {
 			return groupKeyCache.get(GroupKey.getKey(dataId, group)).get();
 		}
 		synchronized (this) {
 			if (!groupKeyCache.containsKey(GroupKey.getKey(dataId, group))) {
+				/**
+				 * 如果缓存中不存在，则从Nacos Server获取配置内容
+				 */
 				String content = getNacosConfigManager().getConfigService().getConfig(dataId, group, 5000);
+				/**
+				 * 放入缓存
+				 */
 				groupKeyCache.put(GroupKey.getKey(dataId, group), new AtomicReference<>(content));
 
-				log.info("[Nacos Config] Listening config for annotation: dataId={}, group={}", dataId,
-						group);
+				log.info("[Nacos Config] Listening config for annotation: dataId={}, group={}", dataId, group);
+				/**
+				 * 为特定的key添加配置监听器，用于更新配置内容
+				 */
 				getNacosConfigManager().getConfigService().addListener(dataId, group, new AbstractListener() {
 					@Override
 					public void receiveConfigInfo(String s) {
+						/**
+						 * 更新配置内容
+						 */
 						groupKeyCache.get(GroupKey.getKey(dataId, group)).set(s);
 					}
 
@@ -98,23 +124,48 @@ public class NacosAnnotationProcessor implements BeanPostProcessor, PriorityOrde
 
 			}
 
+			/**
+			 * 从缓存中取出配置内容
+			 */
 			return groupKeyCache.get(GroupKey.getKey(dataId, group)).get();
 		}
 
 	}
 
+	/**
+	 * 触发Bean初始化之前的生命周期函数
+	 *
+	 * @param bean
+	 * @param beanName
+	 * @return
+	 * @throws BeansException
+	 */
 	@Override
 	public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
 		BeanPostProcessor.super.postProcessBeforeInitialization(bean, beanName);
 		return bean;
 	}
 
+	/**
+	 * 触发Bean初始化完成之后的生命周期函数
+	 *
+	 * @param bean
+	 * @param beanName
+	 * @return
+	 * @throws BeansException
+	 */
 	@Override
 	public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
 		BeanPostProcessor.super.postProcessAfterInitialization(bean, beanName);
 		Class clazz = bean.getClass();
+		/**
+		 * 解析类上的NacosConfig注解
+		 */
 		NacosConfig annotationBean = AnnotationUtils.findAnnotation(clazz, NacosConfig.class);
 		if (annotationBean != null) {
+			/**
+			 * 按照注解配置，对Bean进行增强
+			 */
 			handleBeanNacosConfigAnnotation(annotationBean.dataId(), annotationBean.group(), annotationBean.key(), beanName, bean, annotationBean.defaultValue());
 			return bean;
 		}
@@ -147,8 +198,7 @@ public class NacosAnnotationProcessor implements BeanPostProcessor, PriorityOrde
 		}
 	}
 
-	private void handleBeanNacosConfigAnnotation(String dataId, String group, String key, String beanName, Object bean,
-			String defaultValue) {
+	private void handleBeanNacosConfigAnnotation(String dataId, String group, String key, String beanName, Object bean, String defaultValue) {
 		try {
 			String config = getDestContent(getGroupKeyContent(dataId, group), key);
 			if (!org.springframework.util.StringUtils.hasText(config)) {

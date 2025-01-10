@@ -21,12 +21,21 @@ import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
+ * 基于Nacos的配置中心启动条件类，默认条件下启动Nacos配置中心
+ *
  * @author shiyiyue
  */
 public class NacosConfigEnabledCondition implements Condition {
+
 	@Override
 	public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+		/**
+		 * 从环境中解析Nacos通用配置文件前缀
+		 */
 		String prefix = NacosPropertiesPrefixer.getPrefix(context.getEnvironment());
+		/**
+		 * 解析Nacos配置中心是否启动，PROPERRTIES(spring.cloud.nacos.config.enabled) -> DEFAULT(true)
+		 */
 		return context.getEnvironment().getProperty(prefix + ".config.enabled", Boolean.class, true);
 	}
 }

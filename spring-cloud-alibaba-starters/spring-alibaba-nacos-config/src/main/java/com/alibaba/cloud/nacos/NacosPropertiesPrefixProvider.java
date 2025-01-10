@@ -17,6 +17,8 @@
 package com.alibaba.cloud.nacos;
 
 /**
+ * Nacos通用配置文件前缀
+ *
  * @author shiyiyue
  */
 public interface NacosPropertiesPrefixProvider {

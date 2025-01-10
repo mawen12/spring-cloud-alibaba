@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import com.alibaba.cloud.nacos.utils.PropertySourcesUtils;
 import com.alibaba.cloud.nacos.utils.StringUtils;
 import com.alibaba.nacos.api.config.ConfigService;
+import com.alibaba.nacos.api.config.listener.Listener;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -57,7 +58,7 @@ import static com.alibaba.nacos.api.PropertyKeyConst.SERVER_ADDR;
 import static com.alibaba.nacos.api.PropertyKeyConst.USERNAME;
 
 /**
- * Nacos properties.
+ * Nacos配置中心相关属性
  *
  * @author leijuan
  * @author xiaojing
@@ -77,125 +78,229 @@ public class NacosConfigProperties {
 	public static final String SEPARATOR = "[,]";
 
 	/**
-	 * Nacos default namespace .
+	 * Nacos Server默认的命名空间，默认为public
 	 */
 	public static final String DEFAULT_NAMESPACE = "public";
 
 	/**
-	 * Nacos default server and port.
+	 * Nacos Server默认的地址，默认为127.0.0.1:8848，即本地启动
 	 */
 	public static final String DEFAULT_ADDRESS = "127.0.0.1:8848";
 
 	private static final Pattern PATTERN = Pattern.compile("-(\\w)");
 
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosConfigProperties.class);
+	private static final Logger log = LoggerFactory.getLogger(NacosConfigProperties.class);
 
+	/**
+	 * Spring的环境上下文
+	 */
 	@Autowired
 	@JsonIgnore
 	private Environment environment;
 	/**
-	 * nacos config server address.
+	 * Nacos配置中心的地址，
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.server-addr)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.server-addr)</li>
+	 * </ul>
 	 */
 	private String serverAddr;
 	/**
-	 * the nacos authentication username.
+	 * Nacos登录用户名
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.username)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.username)</li>
+	 * </ul>
 	 */
 	private String username;
 	/**
-	 * the nacos authentication password.
+	 * Nacos登录用户的密码
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.password)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.password)</li>
+	 * </ul>
 	 */
 	private String password;
 	/**
-	 * encode for nacos config content.
+	 * Nacos配置内容的编码
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.encode)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.encode)</li>
+	 * </ul>
 	 */
 	private String encode;
 	/**
-	 * nacos config group, group is config data meta info.
+	 * Nacos配置所属的分组，默认为DEFAULT_GROUP
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.group) -> DEFAULT(DEFAULT_GROUP)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.group) -> DEFAULT(DEFAULT_GROUP)</li>
+	 * </ul>
 	 */
 	private String group = "DEFAULT_GROUP";
 	/**
-	 * nacos config dataId prefix.
+	 * Nacos配置的dataId前缀
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.prefix)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.prefix)</li>
+	 * </ul>
 	 */
 	private String prefix;
 	/**
-	 * the suffix of nacos config dataId, also the file extension of config content.
+	 * Nacos配置的dataId后缀，该值还是文件内容格式，支持以下格式：
+	 * <ul>
+	 *     <li>properties</li>
+	 *     <li>yaml</li>
+	 *     <li>text</li>
+	 *     <li>json</li>
+	 *     <li>xml</li>
+	 *     <li>html</li>
+	 * </ul>
+	 * <p>
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.file-extension) -> DEFAULT(properties)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.file-extension) -> DEFAULT(properties)</li>
+	 * </ul>
+	 *
+	 * @see com.alibaba.nacos.config.server.enums.FileTypeEnum
 	 */
 	private String fileExtension = "properties";
 	/**
-	 * timeout for get config from nacos.
+	 * 从Nacos读取配置的超时时间，默认为3s
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.timeout) -> DEFAULT(3000)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.timeout) -> DEFAULT(3000)</li>
+	 * </ul>
 	 */
 	private int timeout = 3000;
 	/**
-	 * nacos maximum number of tolerable server reconnection errors.
+	 * Nacos最大容忍服务器断线重连错误次数
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.max-retry)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.max-retry)</li>
+	 * </ul>
 	 */
 	private String maxRetry;
 	/**
-	 * nacos get config long poll timeout.
+	 * Nacos读取配置的长轮询超时时间
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.config-long-poll-timeout)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.config-long-poll-timeout)</li>
+	 * </ul>
 	 */
 	private String configLongPollTimeout;
 	/**
-	 * nacos get config failure retry time.
+	 * Nacos读取配置失败的重试时间
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.config-retry-time)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.config-retry-time)</li>
+	 * </ul>
 	 */
 	private String configRetryTime;
 	/**
-	 * If you want to pull it yourself when the program starts to get the configuration
-	 * for the first time, and the registered Listener is used for future configuration
-	 * updates, you can keep the original code unchanged, just add the system parameter:
-	 * enableRemoteSyncConfig = "true" ( But there is network overhead); therefore we
-	 * recommend that you use {@link ConfigService#getConfigAndSignListener} directly.
+	 * 是否注册监听器到Nacos上，当配置发生变更时，客户端是否及时得到通知，默认为false，代表不需要及时通知，
+	 * 设置为true，带来网络负载。
+	 * <p>
+	 * 更好的方案是使用{@link ConfigService#getConfigAndSignListener(String, String, long, Listener)}，注册一个监听器
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.enable-remote-sync-config) -> DEFAULT(false)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.enable-remote-sync-config) -> DEFAULT(false)</li>
+	 * </ul>
 	 */
 	private boolean enableRemoteSyncConfig = false;
 	/**
-	 * endpoint for Nacos, the domain name of a service, through which the server address
-	 * can be dynamically obtained.
+	 * Nacos的端点，通过服务的域名可以找到动态的服务器地址，设置了该值，{@link #serverAddr}可以不再设置
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.endpoint)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.endpoint)</li>
+	 * </ul>
 	 */
 	private String endpoint;
 	/**
-	 * namespace, separation configuration of different environments.
+	 * Nacos配置所在的命名空间，用来区分不同环境的配置，默认为public
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.namespace) -> DEFAULT(public)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.namespace) -> DEFAULT(public)</li>
+	 * </ul>
 	 */
 	private String namespace;
 	/**
-	 * access key for namespace.
+	 * Nacos命名空间的访问密钥
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.access-key)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.access-key)</li>
+	 * </ul>
 	 */
 	private String accessKey;
 	/**
-	 * secret key for namespace.
+	 * Nacos命名空间的密钥
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.secret-key)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.secret-key)</li>
+	 * </ul>
 	 */
 	private String secretKey;
 	/**
-	 * role name for aliyun ram.
+	 * 阿里云RAM的角色名称
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.ram-role-name)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.ram-role-name)</li>
+	 * </ul>
 	 */
 	private String ramRoleName;
 	/**
-	 * context path for nacos config server.
+	 * Nacos配置中心的上下文路径，默认为nacos
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.context-path) -> DEFAULT(nacos)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.context-path) -> DEFAULT(nacos)</li>
+	 * </ul>
 	 */
 	private String contextPath;
 	/**
-	 * nacos config cluster name.
+	 * Nacos配置所在的集群名称，默认为空
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.cluster-name)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.cluster-name)</li>
+	 * </ul>
 	 */
 	private String clusterName;
 	/**
-	 * nacos config dataId name.
+	 * Nacos配置的dataId名称，其完整名称格式为${prefix}${name}${fileExtension}
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.name)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.name)</li>
+	 * </ul>
 	 */
 	private String name;
 	/**
-	 * a set of shared configurations .e.g:
-	 * spring.cloud.nacos.config.shared-configs[0]=xxx .
+	 * 一组共享的配置集合
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.shared-configs[0])</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.shared-configs[0])</li>
+	 * </ul>
 	 */
 	private List<Config> sharedConfigs;
 	/**
-	 * a set of extensional configurations .e.g:
-	 * spring.cloud.nacos.config.extension-configs[0]=xxx .
+	 * 一组扩展配置的集合
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.extension-configs[0])</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.extension-configs[0])</li>
+	 * </ul>
 	 */
 	private List<Config> extensionConfigs;
 	/**
-	 * the master switch for refresh configuration, it default opened(true).
+	 * 刷新配置的主开关，默认为true
+	 * <ul>
+	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.refresh-enabled)</li>
+	 *     <li>Spring：PROPERTIES(spring.nacos.config.refresh-enabled)</li>
+	 * </ul>
 	 */
 	private boolean refreshEnabled = true;
 
 	@PostConstruct
 	public void init() {
+		/**
+		 * 覆盖PROPERTIES
+		 */
 		this.overrideFromEnv();
 	}
 
@@ -204,24 +309,32 @@ public class NacosConfigProperties {
 			return;
 		}
 
+		/**
+		 * 读取Nacos通用配置的前缀
+		 */
 		String prefix = NacosPropertiesPrefixer.getPrefix(environment);
 
 		if (StringUtils.isEmpty(this.getServerAddr())) {
-			String serverAddr = environment
-					.resolvePlaceholders("${" + prefix + ".config.server-addr:}");
+			/**
+			 * 本机未设置Nacos的服务器地址，从 PROPERTIES(${prefix}.config.server-addr) -> PROPERTIES(${prefix}.server-addr:127.0.0.1:8848)
+			 */
+			String serverAddr = environment.resolvePlaceholders("${" + prefix + ".config.server-addr:}");
 			if (StringUtils.isEmpty(serverAddr)) {
-				serverAddr = environment.resolvePlaceholders(
-						"${" + prefix + ".server-addr:127.0.0.1:8848}");
+				serverAddr = environment.resolvePlaceholders("${" + prefix + ".server-addr:127.0.0.1:8848}");
 			}
 			this.setServerAddr(serverAddr);
 		}
 		if (StringUtils.isEmpty(this.getUsername())) {
-			this.setUsername(
-					environment.resolvePlaceholders("${" + prefix + ".username:}"));
+			/**
+			 * 解析Nacos服务器的用户名，从 PROPERTIES(${prefix}.username)
+			 */
+			this.setUsername(environment.resolvePlaceholders("${" + prefix + ".username:}"));
 		}
 		if (StringUtils.isEmpty(this.getPassword())) {
-			this.setPassword(
-					environment.resolvePlaceholders("${" + prefix + ".password:}"));
+			/**
+			 * 解析Nacos服务器的用户名，从 PROPERTIES(${prefix}.password)
+			 */
+			this.setPassword(environment.resolvePlaceholders("${" + prefix + ".password:}"));
 		}
 	}
 
@@ -590,14 +703,15 @@ public class NacosConfigProperties {
 		}
 		String prefix = NacosPropertiesPrefixer.getPrefix(environment);
 
-		Map<String, Object> properties = PropertySourcesUtils
-				.getSubProperties((ConfigurableEnvironment) environment, prefix + ".config");
-		properties.forEach((k, v) -> nacosConfigProperties.putIfAbsent(resolveKey(k),
-				String.valueOf(v)));
+		Map<String, Object> properties = PropertySourcesUtils.getSubProperties((ConfigurableEnvironment) environment, prefix + ".config");
+		properties.forEach((k, v) -> nacosConfigProperties.putIfAbsent(resolveKey(k), String.valueOf(v)));
 	}
 
 	protected String resolveKey(String key) {
 		Matcher matcher = PATTERN.matcher(key);
+		/**
+		 * TODO by mawen 应该使用 StringBuilder
+		 */
 		StringBuffer sb = new StringBuffer();
 		while (matcher.find()) {
 			matcher.appendReplacement(sb, matcher.group(1).toUpperCase());
@@ -626,17 +740,35 @@ public class NacosConfigProperties {
 	public static class Config {
 
 		/**
-		 * the data id of extended configuration.
+		 * 扩展配置的dataId
+		 * <ul>
+		 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.shared-configs[0].dataId)</li>
+		 *     <li>Spring：PROPERTIES(spring.nacos.config.shared-configs[0].dataId)</li>
+		 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.extension-configs[0].dataId)</li>
+		 *     <li>Spring：PROPERTIES(spring.nacos.config.extension-configs[0].dataId)</li>
+		 * </ul>
 		 */
 		private String dataId;
 
 		/**
-		 * the group of extended configuration, the default value is DEFAULT_GROUP.
+		 * 扩展配置的分组，默认为DEFAULT_GROUP
+		 * <ul>
+		 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.shared-configs[0].group) -> DEFAULT(DEFAULT_GROUP)</li>
+		 *     <li>Spring：PROPERTIES(spring.nacos.config.shared-configs[0].group) -> DEFAULT(DEFAULT_GROUP)</li>
+		 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.extension-configs[0].group) -> DEFAULT(DEFAULT_GROUP)</li>
+		 *     <li>Spring：PROPERTIES(spring.nacos.config.extension-configs[0].group) -> DEFAULT(DEFAULT_GROUP)</li>
+		 * </ul>
 		 */
 		private String group = "DEFAULT_GROUP";
 
 		/**
-		 * whether to support dynamic refresh, the default does not support .
+		 * 使用支持动态刷新，默认false，即不支持
+		 * <ul>
+		 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.shared-configs[0].refresh) -> DEFAULT(false)</li>
+		 *     <li>Spring：PROPERTIES(spring.nacos.config.shared-configs[0].refresh) -> DEFAULT(false)</li>
+		 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.extension-configs[0].refresh) -> DEFAULT(false)</li>
+		 *     <li>Spring：PROPERTIES(spring.nacos.config.extension-configs[0].refresh) -> DEFAULT(false)</li>
+		 * </ul>
 		 */
 		private boolean refresh = false;
 

@@ -29,6 +29,13 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * Nacos配置中心相关自动配置类，开启的条件为：
+ * <ul>
+ *     <li>PROPERTIES(#{nacos.prefix}.config.enabled)=true -> DEFAULT(true)</li>
+ * </ul>
+ * <p>
+ * 即默认自动注册
+ *
  * @author juven.xuxb
  * @author freeman
  */

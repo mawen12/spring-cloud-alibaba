@@ -25,6 +25,14 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.core.env.Environment;
 
 /**
+ * 提供获取Nacos通用属性配置前缀的功能。
+ * <ul>
+ *     <li>首先是用户指定 PROPERTIES(spring.nacos.properties.prefix)</li>
+ *     <li>其次是微服务环境下 DEFAULT(spring.cloud.nacos)</li>
+ *     <li>最后是Spring环境下 PROPERTIES(spring.nacos)</li>
+ * </ul>
+ *
+ * @see com.alibaba.cloud.nacos.SpringCloudNacosPropertiesPrefixProvider
  * @author shiyiyue
  */
 public final class NacosPropertiesPrefixer {
@@ -38,6 +46,10 @@ public final class NacosPropertiesPrefixer {
 	}
 
 	private static String getPrefixFromSpi() {
+		/**
+		 * 加载本地的{@link NacosPropertiesPrefixProvider}，并从其获取配置属性前缀，
+		 * 默认的实现是{@link com.alibaba.cloud.nacos.SpringCloudNacosPropertiesPrefixProvider}
+		 */
 		ServiceLoader<NacosPropertiesPrefixProvider> load = ServiceLoader.load(NacosPropertiesPrefixProvider.class);
 		for (NacosPropertiesPrefixProvider provider : load) {
 			return provider.getPrefix();
@@ -45,10 +57,25 @@ public final class NacosPropertiesPrefixer {
 		return "";
 	}
 
+	/**
+	 * 从环境中解析Naocs通用属性文件的前缀
+	 *
+	 * @param environment
+	 * @return
+	 */
 	public static String getPrefix(Environment environment) {
 		String prefix = "spring.nacos";
+		/**
+		 * 从 PROPERTIES(spring.nacos.properties.prefix) 解析nacos的前缀
+		 */
 		String prefixFromProperties = environment.getProperty("spring.nacos.properties.prefix");
+		/**
+		 * 读取顺序: PROPERTIES(spring.nacos.properties.prefix) -> DEFAULT(spring.cloud.nacos) -> DEFAULT(spring.nacos)
+		 */
 		if (StringUtils.isBlank(prefixFromProperties)) {
+			/**
+			 * 当未指定前缀时，便从spi中读取
+			 */
 			if (StringUtils.isNotBlank(NacosPropertiesPrefixer.PREFIX)) {
 				prefix = NacosPropertiesPrefixer.PREFIX;
 			}
@@ -57,6 +84,9 @@ public final class NacosPropertiesPrefixer {
 			prefix = prefixFromProperties;
 		}
 
+		/**
+		 * 对prefix进行格式处理，取出末尾的.
+		 */
 		if (StringUtils.isNotBlank(prefix) && prefix.endsWith(".")) {
 			prefix = prefix.substring(0, prefix.length() - 1);
 		}

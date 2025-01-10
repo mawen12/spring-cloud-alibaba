@@ -23,7 +23,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Nacos Config annotation.
+ * Nacos配置注解
  *
  * @author shiyiyue1102
  */
@@ -32,8 +32,14 @@ import java.lang.annotation.Target;
 @Documented
 public @interface NacosConfig {
 
+	/**
+	 * @return 返回配置分组
+	 */
 	String group();
 
+	/**
+	 * @return 返回配置Id
+	 */
 	String dataId();
 
 	String key() default "";

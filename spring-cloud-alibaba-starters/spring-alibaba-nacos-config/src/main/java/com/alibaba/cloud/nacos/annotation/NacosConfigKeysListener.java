@@ -22,17 +22,34 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @ConfigChangeEvent
+ * Nacos配置内容键监听器，即监听感兴趣的键，并在服务端发生变更时，推送到客户端
+ * <p>
+ * 如果感兴趣
+ *
+ * TODO by mawen 格式调整
+ * @see com.alibaba.nacos.api.config.ConfigChangeEvent
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD})
 public @interface NacosConfigKeysListener {
 
+	/**
+	 * @return 返回配置id
+	 */
 	String dataId();
 
+	/**
+	 * @return 返回配置分组
+	 */
 	String group();
 
+	/**
+	 * @return 返回感兴趣的键
+	 */
 	String[] interestedKeys() default {};
 
+	/**
+	 * @return 返回感兴趣的键前缀
+	 */
 	String[] interestedKeyPrefixes() default {};
 }

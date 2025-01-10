@@ -23,10 +23,19 @@ import com.alibaba.nacos.api.config.ConfigChangeItem;
 import com.alibaba.nacos.api.config.listener.AbstractSharedListener;
 import com.alibaba.nacos.client.config.impl.ConfigChangeHandler;
 
+/**
+ * 配置变更监听器抽象类
+ */
 public abstract class AbstractConfigChangeListener extends AbstractSharedListener implements TargetRefreshable {
 
+	/**
+	 * 上一次配置的内容
+	 */
 	String lastContent;
 
+	/**
+	 * 目标
+	 */
 	Object target;
 
 	@Override
@@ -50,19 +59,42 @@ public abstract class AbstractConfigChangeListener extends AbstractSharedListene
 	@Override
 	public void innerReceive(String dataId, String group, String configInfo) {
 
+		// Map<ADDED/MODIFIED/DELETED, 配置变更元素>
 		Map<String, ConfigChangeItem> data = null;
 		try {
+			/**
+			 * 将获取到的配置内容与上一次配置内容进行比对，并返回发生变化的配置内容
+			 */
 			data = ConfigChangeHandler.getInstance().parseChangeData(lastContent, configInfo, type(dataId));
 		}
 		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+		/**
+		 * 构造配置变更时间
+		 */
 		ConfigChangeEvent event = new ConfigChangeEvent(data);
+		/**
+		 *
+		 */
 		receiveConfigChange(event);
+		/**
+		 * 更新配置内容
+		 */
 		lastContent = configInfo;
 	}
 
+	/**
+	 * 根据dataId确认配置内容格式，其遵循Spring配置风格，仅支持YAML和PROPERTIES
+	 *
+	 * @see com.alibaba.cloud.nacos.NacosConfigProperties#fileExtension
+	 * @param dataId
+	 * @return
+	 */
 	private String type(String dataId) {
+		/**
+		 * dataId的后缀就是配置内容格式
+		 */
 		if (dataId.endsWith(".yml") || dataId.endsWith(".yaml")) {
 			return "yaml";
 		}

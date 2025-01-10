@@ -17,6 +17,7 @@
 package com.alibaba.cloud.nacos;
 
 import java.util.Objects;
+import java.util.Properties;
 
 import com.alibaba.cloud.nacos.diagnostics.analyzer.NacosConnectionFailureException;
 import com.alibaba.nacos.api.NacosFactory;
@@ -26,16 +27,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * 单例设计模式
+ * Nacos配置管理器，提供服务的相关操作
+ * <p>
+ * 需要注意的是，Nacos配置中心服务并未被注册为Bean
+ *
  * @author zkzlx
  */
 public class NacosConfigManager {
 
 	private static final Logger log = LoggerFactory.getLogger(NacosConfigManager.class);
 
+	/**
+	 * Nacos配置中心服务
+	 */
 	private static ConfigService service;
 
+	/**
+	 * Nacos配置管理器实例
+	 */
 	private static NacosConfigManager INSTANCE;
 
+	/**
+	 * 构造{@link ConfigService}的属性信息
+	 */
 	private NacosConfigProperties nacosConfigProperties;
 
 	public NacosConfigManager(NacosConfigProperties nacosConfigProperties) {
@@ -50,6 +65,9 @@ public class NacosConfigManager {
 		if (INSTANCE != null) {
 			return INSTANCE;
 		}
+		/**
+		 * 线程安全的初始化
+		 */
 		synchronized (NacosConfigManager.class) {
 			if (INSTANCE == null) {
 				INSTANCE = new NacosConfigManager(properties);
@@ -62,18 +80,21 @@ public class NacosConfigManager {
 	/**
 	 * Compatible with old design,It will be perfected in the future.
 	 */
-	private ConfigService createConfigService(
-			NacosConfigProperties nacosConfigProperties) {
+	private ConfigService createConfigService(NacosConfigProperties nacosConfigProperties) {
 		try {
+			/**
+			 * 检查确保返回已创建的配置中心服务
+			 */
 			if (Objects.isNull(service)) {
-				service = NacosFactory.createConfigService(
-						nacosConfigProperties.assembleConfigServiceProperties());
+				/**
+				 * 使用{@link NacosFactory#createConfigService(Properties)}来创建配置中心服务
+				 */
+				service = NacosFactory.createConfigService(nacosConfigProperties.assembleConfigServiceProperties());
 			}
 		}
 		catch (NacosException e) {
 			log.error(e.getMessage());
-			throw new NacosConnectionFailureException(
-					nacosConfigProperties.getServerAddr(), e.getMessage(), e);
+			throw new NacosConnectionFailureException(nacosConfigProperties.getServerAddr(), e.getMessage(), e);
 		}
 		return service;
 	}

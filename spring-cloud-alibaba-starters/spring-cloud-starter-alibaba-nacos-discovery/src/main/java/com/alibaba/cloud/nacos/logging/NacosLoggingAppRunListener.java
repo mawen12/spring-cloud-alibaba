@@ -28,6 +28,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
 /**
  * 在Spring应用上下文准备完毕和环境准备完毕时，重新加载Nacos日志配置
  *
+ * <p>仅用于Nacos注册中心
+ *
  * @author RuanSheng
  */
 public class NacosLoggingAppRunListener implements SpringApplicationRunListener, Ordered {

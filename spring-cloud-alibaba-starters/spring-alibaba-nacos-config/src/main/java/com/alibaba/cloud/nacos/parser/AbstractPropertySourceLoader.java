@@ -32,15 +32,13 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.Resource;
 
 /**
- * Nacos-specific loader, If need to support other methods of parsing,you need to do the
- * following steps:
- * <p>
- * 1.inherit {@link AbstractPropertySourceLoader};<br>
- * 2. define the file{@code spring.factories} and append
- * {@code org.springframework.boot.env.PropertySourceLoader=..};<br>
- * 3.the last step validate.
- * </p>
- * Notice the use of {@link NacosByteArrayResource} .
+ * 特定于Nacos的加载器，如果需要支持解析的其他方法，需要执行以下步骤：
+ * <ul>
+ *     <li>继承{@link AbstractPropertySourceLoader}</li>
+ *     <li>在{@code META-INF/spring.factories}定义{@code org.springframework.boot.env.PropertySourceLoader=..}</li>
+ * </ul>
+ *
+ * <p>需要使用{@link NacosByteArrayResource}
  *
  * @author zkz
  */
@@ -60,6 +58,7 @@ public abstract class AbstractPropertySourceLoader implements PropertySourceLoad
 	 * @return if the resource can be loaded
 	 */
 	protected boolean canLoad(String name, Resource resource) {
+		// 仅处理Nacos特定的资源
 		return resource instanceof NacosByteArrayResource;
 	}
 
@@ -74,8 +73,7 @@ public abstract class AbstractPropertySourceLoader implements PropertySourceLoad
 	 * @throws IOException if the source cannot be loaded
 	 */
 	@Override
-	public List<PropertySource<?>> load(String name, Resource resource)
-			throws IOException {
+	public List<PropertySource<?>> load(String name, Resource resource) throws IOException {
 		if (!canLoad(name, resource)) {
 			return Collections.emptyList();
 		}
@@ -92,34 +90,42 @@ public abstract class AbstractPropertySourceLoader implements PropertySourceLoad
 	 * @return a list property sources
 	 * @throws IOException if the source cannot be loaded
 	 */
-	protected abstract List<PropertySource<?>> doLoad(String name, Resource resource)
-			throws IOException;
+	protected abstract List<PropertySource<?>> doLoad(String name, Resource resource) throws IOException;
 
-	protected void flattenedMap(Map<String, Object> result, Map<String, Object> dataMap,
-			String parentKey) {
+	protected void flattenedMap(Map<String, Object> result, Map<String, Object> dataMap, String parentKey) {
+		// 空map无需展开
 		if (dataMap == null || dataMap.isEmpty()) {
 			return;
 		}
+		// 获取所有的实体映射
 		Set<Entry<String, Object>> entries = dataMap.entrySet();
-		for (Iterator<Entry<String, Object>> iterator = entries.iterator(); iterator
-				.hasNext();) {
+		// 依次迭代
+		for (Iterator<Entry<String, Object>> iterator = entries.iterator(); iterator.hasNext();) {
 			Map.Entry<String, Object> entry = iterator.next();
 			String key = entry.getKey();
 			Object value = entry.getValue();
+			/**
+			 * 构造key的完整路径，处理如下：
+			 * <ul>
+			 *     <li>如果没有父级key，则直接使用key</li>
+			 *     <li>如果key是以[作为开头，则格式为{parentKey}{key}</li>
+			 *     <li>如果key不是以[作为开头，则格式为{parentKey}.{key}</li>
+			 * </ul>
+			 */
+			String fullKey = StringUtils.isEmpty(parentKey) ? key : key.startsWith("[") ? parentKey.concat(key) : parentKey.concat(DOT).concat(key);
 
-			String fullKey = StringUtils.isEmpty(parentKey) ? key : key.startsWith("[")
-					? parentKey.concat(key) : parentKey.concat(DOT).concat(key);
-
+			// 对于嵌套Map的场景，继续下转，此时parentKey就是当前的fullKey
 			if (value instanceof Map map) {
 				flattenedMap(result, map, fullKey);
 				continue;
 			}
 			else if (value instanceof Collection collection) {
+				/**
+				 * 对于集合，处理格式为<[0, object], [1, object], ...>
+				 */
 				int count = 0;
 				for (Object object : collection) {
-					flattenedMap(result,
-							Collections.singletonMap("[" + (count++) + "]", object),
-							fullKey);
+					flattenedMap(result, Collections.singletonMap("[" + (count++) + "]", object), fullKey);
 				}
 				continue;
 			}

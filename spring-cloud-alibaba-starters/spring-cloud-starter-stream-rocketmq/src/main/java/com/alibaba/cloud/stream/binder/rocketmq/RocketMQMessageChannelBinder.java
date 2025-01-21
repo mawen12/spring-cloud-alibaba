@@ -56,10 +56,9 @@ import org.springframework.util.StringUtils;
  *
  * @author <a href="mailto:fangjian0423@gmail.com">Jim</a>
  */
-public class RocketMQMessageChannelBinder extends
-		AbstractMessageChannelBinder<ExtendedConsumerProperties<RocketMQConsumerProperties>, ExtendedProducerProperties<RocketMQProducerProperties>, RocketMQTopicProvisioner>
-		implements
-		ExtendedPropertiesBinder<MessageChannel, RocketMQConsumerProperties, RocketMQProducerProperties> {
+public class RocketMQMessageChannelBinder
+		extends AbstractMessageChannelBinder<ExtendedConsumerProperties<RocketMQConsumerProperties>, ExtendedProducerProperties<RocketMQProducerProperties>, RocketMQTopicProvisioner>
+		implements ExtendedPropertiesBinder<MessageChannel, RocketMQConsumerProperties, RocketMQProducerProperties> {
 
 	private final RocketMQExtendedBindingProperties extendedBindingProperties;
 

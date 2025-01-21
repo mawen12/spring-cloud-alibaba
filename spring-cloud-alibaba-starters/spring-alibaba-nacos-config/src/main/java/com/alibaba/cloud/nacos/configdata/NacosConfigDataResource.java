@@ -27,11 +27,16 @@ import org.springframework.boot.context.config.Profiles;
 import org.springframework.util.StringUtils;
 
 /**
+ * Nacos配置数据源
+ *
  * @author freeman
  * @since 2021.0.1.0
  */
 public class NacosConfigDataResource extends ConfigDataResource {
 
+	/**
+	 * Nacos配置中心相关属性
+	 */
 	private final NacosConfigProperties properties;
 
 	private final boolean optional;
@@ -40,10 +45,12 @@ public class NacosConfigDataResource extends ConfigDataResource {
 
 	private final Log log;
 
+	/**
+	 * Nacos配置元素
+	 */
 	private final NacosItemConfig config;
 
-	public NacosConfigDataResource(NacosConfigProperties properties, boolean optional,
-			Profiles profiles, Log log, NacosItemConfig config) {
+	public NacosConfigDataResource(NacosConfigProperties properties, boolean optional, Profiles profiles, Log log, NacosItemConfig config) {
 		this.properties = properties;
 		this.optional = optional;
 		this.profiles = profiles;
@@ -101,17 +108,28 @@ public class NacosConfigDataResource extends ConfigDataResource {
 	}
 
 	public static class NacosItemConfig {
+		/**
+		 * Nacos配置分组
+		 */
 		private String group;
+		/**
+		 * Nacos配置dataId
+		 */
 		private String dataId;
+		/**
+		 * Nacos配置后缀
+		 */
 		private String suffix;
+		/**
+		 * 是否开启刷新
+		 */
 		private boolean refreshEnabled;
 		private String preference;
 
 		public NacosItemConfig() {
 		}
 
-		public NacosItemConfig(String group, String dataId, String suffix,
-				boolean refreshEnabled, String preference) {
+		public NacosItemConfig(String group, String dataId, String suffix, boolean refreshEnabled, String preference) {
 			this.group = group;
 			this.dataId = dataId;
 			this.suffix = suffix;

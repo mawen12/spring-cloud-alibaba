@@ -39,6 +39,10 @@ import org.springframework.util.StringUtils;
 import static com.alibaba.cloud.nacos.parser.AbstractPropertySourceLoader.DOT;
 
 /**
+ * 将原始的Nacos配置{@link String}转换为{@link List<PropertySource>}的解析工具。
+ *
+ * <p>解析器注册在{@code META-INF/spring.factories}中，键为{@link PropertySourceLoader}
+ *
  * @author zkz
  */
 public final class NacosDataParserHandler {
@@ -51,26 +55,28 @@ public final class NacosDataParserHandler {
 	private static List<PropertySourceLoader> propertySourceLoaders;
 
 	private NacosDataParserHandler() {
-		propertySourceLoaders = SpringFactoriesLoader
-				.loadFactories(PropertySourceLoader.class, getClass().getClassLoader());
+		propertySourceLoaders = SpringFactoriesLoader.loadFactories(PropertySourceLoader.class, getClass().getClassLoader());
 	}
 
 	/**
-	 * Parsing nacos configuration content.
-	 * @param configName name of nacos-config
-	 * @param configValue value from nacos-config
-	 * @param extension identifies the type of configValue
+	 * 将原始配置String解析为List<PropertySource>
+	 *
+	 * @param configName 配置名称
+	 * @param configValue 配置值
+	 * @param extension 配置值的扩展
 	 * @return result of Map
 	 * @throws IOException thrown if there is a problem parsing config.
 	 */
-	public List<PropertySource<?>> parseNacosData(String configName, String configValue,
-			String extension) throws IOException {
+	public List<PropertySource<?>> parseNacosData(String configName, String configValue, String extension) throws IOException {
+		// 空配置，直接返回空集合
 		if (!StringUtils.hasLength(configValue)) {
 			return Collections.emptyList();
 		}
+		// 未指定文件扩展时，从配置名称中读取，配置名称的格式应为{prefix}-{name}.{fileExtension}
 		if (!StringUtils.hasLength(extension)) {
 			extension = this.getFileExtension(configName);
 		}
+		//
 		for (PropertySourceLoader propertySourceLoader : propertySourceLoaders) {
 			if (!canLoadFileExtension(propertySourceLoader, extension)) {
 				continue;
@@ -120,21 +126,22 @@ public final class NacosDataParserHandler {
 	 * @return if can match extension
 	 */
 	private boolean canLoadFileExtension(PropertySourceLoader loader, String extension) {
-		return Arrays.stream(loader.getFileExtensions())
-				.anyMatch((fileExtension) -> StringUtils.endsWithIgnoreCase(extension,
-						fileExtension));
+		return Arrays.stream(loader.getFileExtensions()).anyMatch((fileExtension) -> StringUtils.endsWithIgnoreCase(extension, fileExtension));
 	}
 
 	/**
-	 * @param name filename
+	 * @param name 配置名称，格式为{prefix}-{name}.{fileExtension}
 	 * @return file extension, default {@code DEFAULT_EXTENSION} if don't get
 	 */
 	public String getFileExtension(String name) {
+		// 没有指定时，则使用默认的格式：PROPERTIES
 		if (!StringUtils.hasLength(name)) {
 			return DEFAULT_EXTENSION;
 		}
+		// 截取文件最后的.
 		int idx = name.lastIndexOf(DOT);
 		if (idx > 0 && idx < name.length() - 1) {
+			// 获取最后的文件扩展，即fileExtension
 			return name.substring(idx + 1);
 		}
 		return DEFAULT_EXTENSION;

@@ -32,16 +32,23 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.env.PropertySource;
 
 /**
+ * 用于构造{@link NacosPropertySource}的构造器
+ *
  * @author xiaojing
  * @author pbting
  */
 public class NacosPropertySourceBuilder {
 
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosPropertySourceBuilder.class);
+	private static final Logger log = LoggerFactory.getLogger(NacosPropertySourceBuilder.class);
 
+	/**
+	 * 管理配置的服务
+	 */
 	private ConfigService configService;
 
+	/**
+	 * 请求Nacos配置的超时时间
+	 */
 	private long timeout;
 
 	public NacosPropertySourceBuilder(ConfigService configService, long timeout) {
@@ -66,46 +73,46 @@ public class NacosPropertySourceBuilder {
 	}
 
 	/**
+	 * 使用给定配置构造{@link NacosPropertySource}
+	 *
 	 * @param dataId Nacos dataId
 	 * @param group Nacos group
 	 */
-	public NacosPropertySource build(String dataId, String group, String fileExtension,
-			boolean isRefreshable) {
-		List<PropertySource<?>> propertySources = loadNacosData(dataId, group,
-				fileExtension);
-		NacosPropertySource nacosPropertySource = new NacosPropertySource(propertySources,
-				group, dataId, new Date(), isRefreshable);
+	public NacosPropertySource build(String dataId, String group, String fileExtension, boolean isRefreshable) {
+		List<PropertySource<?>> propertySources = loadNacosData(dataId, group, fileExtension);
+		NacosPropertySource nacosPropertySource = new NacosPropertySource(propertySources, group, dataId, new Date(), isRefreshable);
 		NacosPropertySourceRepository.collectNacosPropertySource(nacosPropertySource);
 		return nacosPropertySource;
 	}
 
-	private List<PropertySource<?>> loadNacosData(String dataId, String group,
-			String fileExtension) {
+	private List<PropertySource<?>> loadNacosData(String dataId, String group, String fileExtension) {
 		String data = null;
 		try {
+			// 从Nacos快照中读取配置
 			String configSnapshot = NacosSnapshotConfigManager.getAndRemoveConfigSnapshot(dataId, group);
 			if (StringUtils.isEmpty(configSnapshot)) {
+				// 空配置，则从Nacos上拉取配置
 				log.debug("get config from nacos, dataId: {}, group: {}", dataId, group);
 				data = configService.getConfig(dataId, group, timeout);
 			}
 			else {
-				log.debug("get config from memory snapshot, dataId: {}, group: {}",
-						dataId, group);
+				// 从内存中快照读取到配置
+				log.debug("get config from memory snapshot, dataId: {}, group: {}", dataId, group);
 				data = configSnapshot;
 			}
+
+			// 本地内存或Nacos服务器上都不存在该配置，返回空集合
 			if (StringUtils.isEmpty(data)) {
-				log.warn(
-						"Ignore the empty nacos configuration and get it based on dataId[{}] & group[{}]",
-						dataId, group);
+				log.warn("Ignore the empty nacos configuration and get it based on dataId[{}] & group[{}]", dataId, group);
 				return Collections.emptyList();
 			}
+
 			if (log.isDebugEnabled()) {
-				log.debug(String.format(
-						"Loading nacos data, dataId: '%s', group: '%s', data: %s", dataId,
-						group, data));
+				// 将配置打印在控制台中
+				log.debug(String.format("Loading nacos data, dataId: '%s', group: '%s', data: %s", dataId, group, data));
 			}
-			return NacosDataParserHandler.getInstance().parseNacosData(dataId, data,
-					fileExtension);
+			// 将字符串的文件解析为指定文件扩展
+			return NacosDataParserHandler.getInstance().parseNacosData(dataId, data, fileExtension);
 		}
 		catch (NacosException e) {
 			log.error("get data from Nacos error,dataId:{} ", dataId, e);

@@ -60,6 +60,8 @@ import static com.alibaba.nacos.api.PropertyKeyConst.USERNAME;
 /**
  * Nacos配置中心相关属性
  *
+ * <p>仅用于配置中心
+ *
  * @author leijuan
  * @author xiaojing
  * @author pbting
@@ -264,7 +266,7 @@ public class NacosConfigProperties {
 	 */
 	private String clusterName;
 	/**
-	 * Nacos配置的dataId名称，其完整名称格式为${prefix}${name}${fileExtension}
+	 * Nacos配置的dataId名称，其完整名称格式为{prefix}-{name}.{fileExtension}
 	 * <ul>
 	 *     <li>Spring Cloud：PROPERTIES(spring.cloud.nacos.config.name)</li>
 	 *     <li>Spring：PROPERTIES(spring.nacos.config.name)</li>
@@ -657,11 +659,9 @@ public class NacosConfigProperties {
 		properties.put(RAM_ROLE_NAME, Objects.toString(this.ramRoleName, ""));
 		properties.put(CLUSTER_NAME, Objects.toString(this.clusterName, ""));
 		properties.put(MAX_RETRY, Objects.toString(this.maxRetry, ""));
-		properties.put(CONFIG_LONG_POLL_TIMEOUT,
-				Objects.toString(this.configLongPollTimeout, ""));
+		properties.put(CONFIG_LONG_POLL_TIMEOUT, Objects.toString(this.configLongPollTimeout, ""));
 		properties.put(CONFIG_RETRY_TIME, Objects.toString(this.configRetryTime, ""));
-		properties.put(ENABLE_REMOTE_SYNC_CONFIG,
-				Objects.toString(this.enableRemoteSyncConfig, ""));
+		properties.put(ENABLE_REMOTE_SYNC_CONFIG, Objects.toString(this.enableRemoteSyncConfig, ""));
 		String endpoint = Objects.toString(this.endpoint, "");
 		if (endpoint.contains(":")) {
 			int index = endpoint.indexOf(":");

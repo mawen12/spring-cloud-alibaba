@@ -23,15 +23,15 @@ import java.util.Properties;
 import com.alibaba.cloud.nacos.NacosConfigProperties;
 
 /**
- * Used for initialization of Nacos ConfigService.
+ * 用于初始化Nacos配置中心的属性
  */
 public class NacosConfigDataLoadProperties extends NacosConfigProperties {
+
 	private Map<String, String> config = new HashMap<>();
 
 	@Override
 	protected void enrichNacosConfigProperties(Properties nacosConfigProperties) {
-		config.forEach((k, v) -> nacosConfigProperties.putIfAbsent(resolveKey(k),
-				String.valueOf(v)));
+		config.forEach((k, v) -> nacosConfigProperties.putIfAbsent(resolveKey(k), String.valueOf(v)));
 	}
 
 	Map<String, String> getConfig() {

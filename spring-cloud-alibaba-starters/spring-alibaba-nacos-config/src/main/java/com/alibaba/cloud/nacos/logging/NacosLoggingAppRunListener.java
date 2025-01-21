@@ -26,7 +26,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 /**
- * Reload nacos log configuration on spring application contextPrepared.
+ * 在Spring应用上下文准备完毕和环境准备完毕时，重新加载Nacos日志配置
+ *
+ * <p>仅用于Nacos配置中心
  *
  * @author RuanSheng
  */

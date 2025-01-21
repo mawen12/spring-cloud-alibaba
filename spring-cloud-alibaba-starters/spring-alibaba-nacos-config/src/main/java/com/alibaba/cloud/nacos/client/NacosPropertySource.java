@@ -30,33 +30,38 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.util.CollectionUtils;
 
 /**
+ * 基于{@link Map}存储的属性源，同时维护了Nacos配置的上级信息{@link #dataId}和{@link #group}
+ *
+ * <p>属性源的名称为{dataId}-{group}
+ * <p>属性以{@link Map}类型存储
+ *
  * @author xiaojing
  * @author pbting
  */
 public class NacosPropertySource extends MapPropertySource {
 
 	/**
-	 * Nacos Group.
+	 * 配置分组
 	 */
 	private final String group;
 
 	/**
-	 * Nacos dataID.
+	 * 配置DataId
 	 */
 	private final String dataId;
 
 	/**
-	 * timestamp the property get.
+	 * 获取属性的时间戳
 	 */
 	private final Date timestamp;
 
 	/**
-	 * Whether to support dynamic refresh for this Property Source.
+	 * 是否支持动态刷新
 	 */
 	private final boolean isRefreshable;
 
-	NacosPropertySource(String group, String dataId, Map<String, Object> source,
-			Date timestamp, boolean isRefreshable) {
+	NacosPropertySource(String group, String dataId, Map<String, Object> source, Date timestamp, boolean isRefreshable) {
+		// 属性源的名称为{dataId}-{group}
 		super(String.join(NacosConfigProperties.COMMAS, dataId, group), source);
 		this.group = group;
 		this.dataId = dataId;
@@ -64,14 +69,11 @@ public class NacosPropertySource extends MapPropertySource {
 		this.isRefreshable = isRefreshable;
 	}
 
-	public NacosPropertySource(List<PropertySource<?>> propertySources, String group,
-			String dataId, Date timestamp, boolean isRefreshable) {
-		this(group, dataId, getSourceMap(group, dataId, propertySources), timestamp,
-				isRefreshable);
+	public NacosPropertySource(List<PropertySource<?>> propertySources, String group, String dataId, Date timestamp, boolean isRefreshable) {
+		this(group, dataId, getSourceMap(group, dataId, propertySources), timestamp, isRefreshable);
 	}
 
-	private static Map<String, Object> getSourceMap(String group, String dataId,
-			List<PropertySource<?>> propertySources) {
+	private static Map<String, Object> getSourceMap(String group, String dataId, List<PropertySource<?>> propertySources) {
 		if (CollectionUtils.isEmpty(propertySources)) {
 			return Collections.emptyMap();
 		}
@@ -79,6 +81,7 @@ public class NacosPropertySource extends MapPropertySource {
 		if (propertySources.size() == 1) {
 			PropertySource propertySource = propertySources.get(0);
 			if (propertySource != null && propertySource.getSource() instanceof Map source) {
+				// 直接返回属性源内部的元素类型为Map的值
 				return source;
 			}
 		}
@@ -90,26 +93,24 @@ public class NacosPropertySource extends MapPropertySource {
 				continue;
 			}
 			if (propertySource instanceof MapPropertySource mapPropertySource) {
-				// If the Nacos configuration file uses "---" to separate property name,
-				// propertySources will be multiple documents, and every document is a
-				// map.
-				// see org.springframework.boot.env.YamlPropertySourceLoader#load
+				// 如果Nacos配置文件使用"---"来拆分属性名，属性源将有多个文档，每个文档都是一个Map, org.springframework.boot.env.YamlPropertySourceLoader#load
+				// 仅处理MapPropertySource，将结果合并到哈希表中
 				Map<String, Object> source = mapPropertySource.getSource();
 				sourceMap.putAll(source);
 			}
 			else {
+				// 其他类型待处理
 				otherTypePropertySources.add(propertySource);
 			}
 		}
 
-		// Other property sources which is not instanceof MapPropertySource will be put as
-		// it is,
-		// and the internal elements cannot be directly retrieved,
-		// so the user needs to implement the retrieval logic by himself
+		// Nacos 不处理其他类型的属性源，需要用户自行处理
 		if (!otherTypePropertySources.isEmpty()) {
-			sourceMap.put(String.join(NacosConfigProperties.COMMAS, dataId, group),
-					otherTypePropertySources);
+			// 处理非MapPropertySource类型的属性源
+			// 将其作为特定的属性源处理，属性名称为{dataId}-{group}，值为其他类型的属性源
+			sourceMap.put(String.join(NacosConfigProperties.COMMAS, dataId, group), otherTypePropertySources);
 		}
+
 		return sourceMap;
 	}
 

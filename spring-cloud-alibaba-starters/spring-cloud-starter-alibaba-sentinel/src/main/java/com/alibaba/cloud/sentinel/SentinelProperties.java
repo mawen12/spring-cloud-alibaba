@@ -16,23 +16,23 @@
 
 package com.alibaba.cloud.sentinel;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
 import com.alibaba.cloud.sentinel.datasource.config.DataSourcePropertiesConfiguration;
 import com.alibaba.csp.sentinel.config.SentinelConfig;
-import com.alibaba.csp.sentinel.log.LogBase;
 import com.alibaba.csp.sentinel.transport.config.TransportConfig;
-
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.DeprecatedConfigurationProperty;
 import org.springframework.core.Ordered;
 import org.springframework.util.StringUtils;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 /**
- * {@link ConfigurationProperties} for Sentinel.
+ * 用于Sentinel的{@link ConfigurationProperties}
+ *
+ * <p>配置前缀为：spring.cloud.sentinel
  *
  * @author xiaojing
  * @author hengyunabc
@@ -43,66 +43,62 @@ import org.springframework.util.StringUtils;
 public class SentinelProperties {
 
 	/**
-	 * Earlier initialize heart-beat when the spring container starts when the transport
-	 * dependency is on classpath, the configuration is effective.
+	 * 当Spring容器启动时初始化heart-beat。当transport依赖存在于类路径上时，配置才生效
 	 */
 	private boolean eager = false;
 
 	/**
-	 * Enable sentinel auto configure, the default value is true.
+	 * 开始Sentinel自动配置，默认为开启
 	 */
 	private boolean enabled = true;
 
 	/**
-	 * The process page when the flow control is triggered.
+	 * 触发流控时的处理页面
 	 */
 	private String blockPage;
 
 	/**
-	 * Configurations about datasource, like 'nacos', 'apollo', 'file', 'zookeeper'.
+	 * 数据源相关配置，例如：nacos, apollo, file, zookeeper
 	 */
-	private Map<String, DataSourcePropertiesConfiguration> datasource = new TreeMap<>(
-			String.CASE_INSENSITIVE_ORDER);
+	private Map<String, DataSourcePropertiesConfiguration> datasource = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
 	/**
-	 * Transport configuration about dashboard and client.
+	 * 关于仪表板和客户端的传输配置
 	 */
 	private Transport transport = new Transport();
 
 	/**
-	 * Metric configuration about resource.
+	 * 关于资源的度量配置
 	 */
 	private Metric metric = new Metric();
 
 	/**
-	 * Web servlet configuration when the application is web, the configuration is
-	 * effective.
+	 * Web servlet配置，当应用类型为Web时才生效
 	 */
 	private Servlet servlet = new Servlet();
 
 	/**
-	 * Sentinel interceptor when the application is web, the configuration is effective.
+	 * Sentinel 拦截器，当应用类型为Web时才生效
 	 */
 	private Filter filter = new Filter();
 
 	/**
-	 * Sentinel Flow configuration.
+	 * Sentinel 流控
 	 */
 	private Flow flow = new Flow();
 
 	/**
-	 * Sentinel log configuration {@link LogBase}.
+	 * Sentinel 日志配置
 	 */
 	private Log log = new Log();
 
 	/**
-	 * Add HTTP method prefix for Sentinel Resource.
+	 * 是否为Sentinel资源添加HTTP方法前缀
 	 */
 	private Boolean httpMethodSpecify = false;
 
 	/**
-	 * Specify whether unify web context(i.e. use the default context name), and is true
-	 * by default.
+	 * 指定是否统一Web上下文（即使用默认的上下文名称），默认为true。
 	 */
 	private Boolean webContextUnify = true;
 

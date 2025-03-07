@@ -33,12 +33,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.AbstractClientHttpResponse;
 
 /**
- * Using by {@link SentinelRestTemplate} and {@link SentinelProtectInterceptor}.
+ * 被{@link SentinelRestTemplate}和{@link SentinelProtectInterceptor}所使用
  *
  * @author <a href="mailto:fangjian0423@gmail.com">Jim</a>
  */
 public class SentinelClientHttpResponse extends AbstractClientHttpResponse {
 
+	/**
+	 * 流控触发时的响应
+	 */
 	private String blockResponse = "RestTemplate request block by sentinel";
 
 	public SentinelClientHttpResponse() {
@@ -68,11 +71,13 @@ public class SentinelClientHttpResponse extends AbstractClientHttpResponse {
 		return new ByteArrayInputStream(blockResponse.getBytes());
 	}
 
+	/**
+	 * @return 带有Content-Type: application/json的请求头
+	 */
 	@Override
 	public HttpHeaders getHeaders() {
 		Map<String, List<String>> headers = new HashMap<>();
-		headers.put(HttpHeaders.CONTENT_TYPE,
-				Arrays.asList(MediaType.APPLICATION_JSON_VALUE));
+		headers.put(HttpHeaders.CONTENT_TYPE, Arrays.asList(MediaType.APPLICATION_JSON_VALUE));
 		HttpHeaders httpHeaders = new HttpHeaders();
 		httpHeaders.putAll(headers);
 		return httpHeaders;

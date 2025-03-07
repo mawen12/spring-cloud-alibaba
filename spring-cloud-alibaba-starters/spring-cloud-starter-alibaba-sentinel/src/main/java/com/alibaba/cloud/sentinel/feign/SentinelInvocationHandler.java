@@ -39,7 +39,7 @@ import org.springframework.cloud.openfeign.FallbackFactory;
 import static feign.Util.checkNotNull;
 
 /**
- * {@link InvocationHandler} handle invocation that protected by Sentinel.
+ * 由Sentinel所保护的{@link InvocationHandler}处理调用
  *
  * @author <a href="mailto:fangjian0423@gmail.com">Jim</a>
  */
@@ -47,14 +47,16 @@ public class SentinelInvocationHandler implements InvocationHandler {
 
 	private final Target<?> target;
 
-	private final Map<Method, MethodHandler> dispatch;
+	private final Map<Method/* Feign接口中的方法 */, MethodHandler/* 被解析增强后的方法调用 */> dispatch;
 
+	/**
+	 * Feign注解定义的回退工厂
+	 */
 	private FallbackFactory fallbackFactory;
 
-	private Map<Method, Method> fallbackMethodMap;
+	private Map<Method/* Feign接口中的方法 */, Method/* 对应的回退方法 */> fallbackMethodMap;
 
-	SentinelInvocationHandler(Target<?> target, Map<Method, MethodHandler> dispatch,
-			FallbackFactory fallbackFactory) {
+	SentinelInvocationHandler(Target<?> target, Map<Method, MethodHandler> dispatch, FallbackFactory fallbackFactory) {
 		this.target = checkNotNull(target, "target");
 		this.dispatch = checkNotNull(dispatch, "dispatch");
 		this.fallbackFactory = fallbackFactory;
@@ -67,8 +69,10 @@ public class SentinelInvocationHandler implements InvocationHandler {
 	}
 
 	@Override
-	public Object invoke(final Object proxy, final Method method, final Object[] args)
-			throws Throwable {
+	public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+		/**
+		 * 对于equals, hashCode, toString特殊处理
+		 */
 		if ("equals".equals(method.getName())) {
 			try {
 				Object otherHandler = args.length > 0 && args[0] != null
@@ -88,30 +92,35 @@ public class SentinelInvocationHandler implements InvocationHandler {
 		}
 
 		Object result;
+		// 获取接口方法对应的方法处理器
 		MethodHandler methodHandler = this.dispatch.get(method);
-		// only handle by HardCodedTarget
+		// 仅能够被HardCodedTarget处理
 		if (target instanceof Target.HardCodedTarget hardCodedTarget) {
-			MethodMetadata methodMetadata = SentinelContractHolder.METADATA_MAP
-					.get(hardCodedTarget.type().getName()
-							+ Feign.configKey(hardCodedTarget.type(), method));
-			// resource default is HttpMethod:protocol://url
+			// 获取方法元信息，ClassFullName + Feign#configKey
+			MethodMetadata methodMetadata = SentinelContractHolder.METADATA_MAP.get(hardCodedTarget.type().getName() + Feign.configKey(hardCodedTarget.type(), method));
 			if (methodMetadata == null) {
+				// 元信息不存在，直接发起远程调用
 				result = methodHandler.invoke(args);
 			}
 			else {
-				String resourceName = methodMetadata.template().method().toUpperCase()
-						+ ":" + hardCodedTarget.url() + methodMetadata.template().path();
+				// 资源默认为 HttpMethod:protocol://url
+				// 资源就是Sentinel要保护的东西，也是其核心概念之一
+				String resourceName = methodMetadata.template().method().toUpperCase() + ":" + hardCodedTarget.url() + methodMetadata.template().path();
 				Entry entry = null;
 				try {
 					ContextUtil.enter(resourceName);
+					// 将要进行流量控制的资源保护起来，
 					entry = SphU.entry(resourceName, EntryType.OUT, 1, args);
+					// 方法调用
 					result = methodHandler.invoke(args);
 				}
 				catch (Throwable ex) {
 					// fallback handle
 					if (!BlockException.isBlockException(ex)) {
+						// 对于非流控代码，进行跟踪
 						Tracer.traceEntry(ex, entry);
 					}
+					// 处理被流控的代码，当抛出BlockException，代表触发流控了
 					if (fallbackFactory != null) {
 						try {
 							Object fallbackResult = fallbackMethodMap.get(method)
@@ -134,6 +143,7 @@ public class SentinelInvocationHandler implements InvocationHandler {
 				}
 				finally {
 					if (entry != null) {
+						// 退出资源控制
 						entry.exit(1, args);
 					}
 					ContextUtil.exit();

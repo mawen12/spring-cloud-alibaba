@@ -23,6 +23,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * 基于{@link org.springframework.web.client.RestTemplate}实现的Sentinel注解
+ *
  * @author fangjian
  */
 @Target({ ElementType.METHOD })

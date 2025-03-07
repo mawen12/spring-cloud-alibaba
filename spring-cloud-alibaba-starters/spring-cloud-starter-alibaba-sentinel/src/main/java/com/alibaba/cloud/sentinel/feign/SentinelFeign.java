@@ -39,7 +39,7 @@ import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
 
 /**
- * {@link Feign.Builder}.
+ * 被{@link Feign.Builder}所使用
  *
  * @author <a href="mailto:fangjian0423@gmail.com">Jim</a>
  * @author 黄学敏（huangxuemin)
@@ -56,18 +56,24 @@ public final class SentinelFeign {
 		return new Builder();
 	}
 
-	public static final class Builder extends Feign.Builder
-			implements ApplicationContextAware {
-
+	public static final class Builder extends Feign.Builder implements ApplicationContextAware {
+		/**
+		 * Feign合约
+		 */
 		private Contract contract = new Contract.Default();
 
+		/**
+		 * 应用上下文
+		 */
 		private ApplicationContext applicationContext;
 
+		/**
+		 * Feign客户端工厂
+		 */
 		private FeignClientFactory feignClientFactory;
 
 		@Override
-		public Feign.Builder invocationHandlerFactory(
-				InvocationHandlerFactory invocationHandlerFactory) {
+		public Feign.Builder invocationHandlerFactory(InvocationHandlerFactory invocationHandlerFactory) {
 			throw new UnsupportedOperationException();
 		}
 
@@ -81,32 +87,30 @@ public final class SentinelFeign {
 		public Feign internalBuild() {
 			super.invocationHandlerFactory(new InvocationHandlerFactory() {
 				@Override
-				public InvocationHandler create(Target target,
-						Map<Method, MethodHandler> dispatch) {
+				public InvocationHandler create(Target target, Map<Method, MethodHandler> dispatch) {
 					GenericApplicationContext gctx = (GenericApplicationContext) Builder.this.applicationContext;
 					BeanDefinition def = gctx.getBeanDefinition(target.type().getName());
 					FeignClientFactoryBean feignClientFactoryBean;
 
-					// If you need the attributes to be resolved lazily, set the property value to true.
-					Boolean isLazyInit = applicationContext.getEnvironment()
-							.getProperty(FEIGN_LAZY_ATTR_RESOLUTION, Boolean.class, false);
+					// 是否懒加载
+					Boolean isLazyInit = applicationContext.getEnvironment().getProperty(FEIGN_LAZY_ATTR_RESOLUTION, Boolean.class, false);
 					if (isLazyInit) {
-						/*
-						 * Due to the change of the initialization sequence,
-						 * BeanFactory.getBean will cause a circular dependency. So
-						 * FeignClientFactoryBean can only be obtained from BeanDefinition
-						 */
-						feignClientFactoryBean = (FeignClientFactoryBean) def
-								.getAttribute("feignClientsRegistrarFactoryBean");
+						// 由于初始化顺序的变更，BeanFactory.getBean将引发循环依赖
+						// 因此FeignClientFactoryBean只能从BeanDefinition获取
+						feignClientFactoryBean = (FeignClientFactoryBean) def.getAttribute("feignClientsRegistrarFactoryBean");
 					}
 					else {
-						feignClientFactoryBean = (FeignClientFactoryBean) applicationContext
-								.getBean("&" + target.type().getName());
+						// 非懒加载，直接通过&获取FeignClientFactoryBean
+						feignClientFactoryBean = (FeignClientFactoryBean) applicationContext.getBean("&" + target.type().getName());
 					}
+					// 获取回退类
 					Class fallback = feignClientFactoryBean.getFallback();
+					// 获取回退工厂Bean
 					Class fallbackFactory = feignClientFactoryBean.getFallbackFactory();
+					// 获取bean名称
 					String beanName = feignClientFactoryBean.getContextId();
 					if (!StringUtils.hasText(beanName)) {
+						// 如果bean名称不存在，则获取FeignClientFactoryBean#name作为bean名称
 						beanName = (String) getFieldValue(feignClientFactoryBean, "name");
 					}
 
@@ -114,34 +118,34 @@ public final class SentinelFeign {
 					FallbackFactory fallbackFactoryInstance;
 					// check fallback and fallbackFactory properties
 					if (void.class != fallback) {
-						fallbackInstance = getFromContext(beanName, "fallback", fallback,
-								target.type());
+						// 获取指定的回退实例
+						fallbackInstance = getFromContext(beanName, "fallback", fallback, target.type());
+						// 封装到Sentinel调用处理器中
 						return new SentinelInvocationHandler(target, dispatch,
 								new FallbackFactory.Default(fallbackInstance));
 					}
 					if (void.class != fallbackFactory) {
-						fallbackFactoryInstance = (FallbackFactory) getFromContext(
-								beanName, "fallbackFactory", fallbackFactory,
-								FallbackFactory.class);
-						return new SentinelInvocationHandler(target, dispatch,
-								fallbackFactoryInstance);
+						// 获取指定的回退工厂实例
+						fallbackFactoryInstance = (FallbackFactory) getFromContext(beanName, "fallbackFactory", fallbackFactory, FallbackFactory.class);
+						// 封装到Sentinel调用处理器中
+						return new SentinelInvocationHandler(target, dispatch, fallbackFactoryInstance);
 					}
 
+					// 对应未设置回退的feign，直接封装
 					return new SentinelInvocationHandler(target, dispatch);
 				}
 
-				private Object getFromContext(String name, String type,
-						Class fallbackType, Class targetType) {
-					Object fallbackInstance = feignClientFactory.getInstance(name,
-							fallbackType);
+				private Object getFromContext(String name, String type, Class fallbackType, Class targetType) {
+					// 获取回退实例
+					Object fallbackInstance = feignClientFactory.getInstance(name, fallbackType);
 					if (fallbackInstance == null) {
-						throw new IllegalStateException(String.format(
-								"No %s instance of type %s found for feign client %s",
-								type, fallbackType, name));
+						throw new IllegalStateException(String.format("No %s instance of type %s found for feign client %s", type, fallbackType, name));
 					}
-					// when fallback is a FactoryBean, should determine the type of instance
+
+					// 如果回退是一个FactoryBean，应该使用getObject获取实例
 					if (fallbackInstance instanceof FactoryBean<?> factoryBean) {
 						try {
+							// 从工厂中获取实例
 							fallbackInstance = factoryBean.getObject();
 						}
 						catch (Exception e) {
@@ -150,10 +154,9 @@ public final class SentinelFeign {
 						fallbackType = fallbackInstance.getClass();
 					}
 
+					// 检查实际回退类型与设置是否匹配
 					if (!targetType.isAssignableFrom(fallbackType)) {
-						throw new IllegalStateException(String.format(
-								"Incompatible %s instance. Fallback/fallbackFactory of type %s is not assignable to %s for feign client %s",
-								type, fallbackType, targetType, name));
+						throw new IllegalStateException(String.format("Incompatible %s instance. Fallback/fallbackFactory of type %s is not assignable to %s for feign client %s",type, fallbackType, targetType, name));
 					}
 					return fallbackInstance;
 				}
@@ -163,6 +166,13 @@ public final class SentinelFeign {
 			return super.internalBuild();
 		}
 
+		/**
+		 * 通过反射获取字段值
+		 *
+		 * @param instance
+		 * @param fieldName
+		 * @return
+		 */
 		private Object getFieldValue(Object instance, String fieldName) {
 			Field field = ReflectionUtils.findField(instance.getClass(), fieldName);
 			field.setAccessible(true);
@@ -176,8 +186,7 @@ public final class SentinelFeign {
 		}
 
 		@Override
-		public void setApplicationContext(ApplicationContext applicationContext)
-				throws BeansException {
+		public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 			this.applicationContext = applicationContext;
 			feignClientFactory = this.applicationContext.getBean(FeignClientFactory.class);
 		}

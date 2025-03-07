@@ -17,50 +17,55 @@
 package com.alibaba.cloud.sentinel;
 
 /**
+ * Sentinel 常量
+ *
  * @author fangjian
  */
 public final class SentinelConstants {
 
 	/**
-	 * Prefix of {@link SentinelProperties}.
+	 * {@link SentinelProperties}的前缀
 	 */
 	public static final String PROPERTY_PREFIX = "spring.cloud.sentinel";
 
 	/**
-	 * Block page key.
+	 * 阻塞页键
 	 */
 	public static final String BLOCK_PAGE_URL_CONF_KEY = "csp.sentinel.web.servlet.block.page";
 
 	/**
-	 * Block type.
+	 * 阻塞类型
 	 */
 	public static final String BLOCK_TYPE = "block";
 
 	/**
-	 * Fallback type.
+	 * 回退类型
 	 */
 	public static final String FALLBACK_TYPE = "fallback";
 
 	/**
-	 * UrlCleaner type.
+	 * Url清理器类型
 	 */
 	public static final String URLCLEANER_TYPE = "urlCleaner";
 
 	/**
-	 * The cold factor.
+	 * 冷因子
 	 */
 	public static final String COLD_FACTOR = "3";
 
 	/**
-	 * The charset.
+	 * 字符集
 	 */
 	public static final String CHARSET = "UTF-8";
 
 	/**
-	 * The Sentinel api port.
+	 * Sentinel API 端口
 	 */
 	public static final String API_PORT = "8719";
 
+	/**
+	 * 不可初始化
+	 */
 	private SentinelConstants() {
 		throw new AssertionError("Must not instantiate constant utility class");
 	}

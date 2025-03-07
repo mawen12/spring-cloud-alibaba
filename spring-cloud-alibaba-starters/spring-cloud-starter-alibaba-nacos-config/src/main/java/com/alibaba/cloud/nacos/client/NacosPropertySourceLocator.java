@@ -35,14 +35,15 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 
 /**
+ * 基于Nacos的属性源加载器
+ *
  * @author xiaojing
  * @author pbting
  */
 @Order(0)
 public class NacosPropertySourceLocator implements PropertySourceLocator {
 
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosPropertySourceLocator.class);
+	private static final Logger log = LoggerFactory.getLogger(NacosPropertySourceLocator.class);
 
 	private static final String NACOS_PROPERTY_SOURCE_NAME = "NACOS";
 
@@ -50,10 +51,19 @@ public class NacosPropertySourceLocator implements PropertySourceLocator {
 
 	private static final String DOT = ".";
 
+	/**
+	 * Nacos属性源构造器
+	 */
 	private NacosPropertySourceBuilder nacosPropertySourceBuilder;
 
+	/**
+	 * Nacos配置属性
+	 */
 	private NacosConfigProperties nacosConfigProperties;
 
+	/**
+	 * Nacos配置管理器
+	 */
 	private NacosConfigManager nacosConfigManager;
 
 	/**
@@ -73,29 +83,36 @@ public class NacosPropertySourceLocator implements PropertySourceLocator {
 
 	@Override
 	public PropertySource<?> locate(Environment env) {
+		// 获取Nacos服务
 		ConfigService configService = nacosConfigManager.getConfigService();
 
 		if (null == configService) {
+			// Nacos配置服务未发现，直接返回
 			log.warn("no instance of config service found, can't load config from nacos");
 			return null;
 		}
+		// 获取请求超时时间
 		long timeout = nacosConfigProperties.getTimeout();
-		nacosPropertySourceBuilder = new NacosPropertySourceBuilder(configService,
-				timeout);
+		// 构造Nacos属性源构造器
+		nacosPropertySourceBuilder = new NacosPropertySourceBuilder(configService, timeout);
+		// 获取属性名称dataId，即${prefix}${name}${fileExtension}
 		String name = nacosConfigProperties.getName();
-
+		// 获取dataId的前缀
 		String dataIdPrefix = nacosConfigProperties.getPrefix();
 		if (StringUtils.isEmpty(dataIdPrefix)) {
+			// 未指定前缀时，就以该dataId作为前缀
 			dataIdPrefix = name;
 		}
 
 		if (StringUtils.isEmpty(dataIdPrefix)) {
+			// 未指定prefix, name, fileExtension时，取ENV(spring.application.name)
 			dataIdPrefix = env.getProperty("spring.application.name");
 		}
 
-		CompositePropertySource composite = new CompositePropertySource(
-				NACOS_PROPERTY_SOURCE_NAME);
+		// 构造服务属性源，名称为NACOS
+		CompositePropertySource composite = new CompositePropertySource(NACOS_PROPERTY_SOURCE_NAME);
 
+		//
 		loadApplicationConfiguration(composite, dataIdPrefix, nacosConfigProperties, env);
 		return composite;
 	}
@@ -103,14 +120,13 @@ public class NacosPropertySourceLocator implements PropertySourceLocator {
 	/**
 	 * load configuration of application.
 	 */
-	private void loadApplicationConfiguration(
-			CompositePropertySource compositePropertySource, String dataIdPrefix,
-			NacosConfigProperties properties, Environment environment) {
+	private void loadApplicationConfiguration(CompositePropertySource compositePropertySource, String dataIdPrefix, NacosConfigProperties properties, Environment environment) {
+		// 读取文件扩展，目前仅支持Properties和Yaml
 		String fileExtension = properties.getFileExtension();
+		// 获取配置分组
 		String nacosGroup = properties.getGroup();
 		// load directly once by default
-		loadNacosDataIfPresent(compositePropertySource, dataIdPrefix, nacosGroup,
-				fileExtension, true);
+		loadNacosDataIfPresent(compositePropertySource, dataIdPrefix, nacosGroup, fileExtension, true);
 		// load with suffix, which have a higher priority than the default
 		loadNacosDataIfPresent(compositePropertySource,
 				dataIdPrefix + DOT + fileExtension, nacosGroup, fileExtension, true);
@@ -145,30 +161,29 @@ public class NacosPropertySourceLocator implements PropertySourceLocator {
 		}
 	}
 
-	private void loadNacosDataIfPresent(final CompositePropertySource composite,
-			final String dataId, final String group, String fileExtension,
-			boolean isRefreshable) {
+	private void loadNacosDataIfPresent(final CompositePropertySource composite, final String dataId, final String group, String fileExtension, boolean isRefreshable) {
+		// dataId 未指定，直接返回
 		if (null == dataId || dataId.trim().length() < 1) {
 			return;
 		}
+		// group未指定，直接返回
 		if (null == group || group.trim().length() < 1) {
 			return;
 		}
-		NacosPropertySource propertySource = this.loadNacosPropertySource(dataId, group,
-				fileExtension, isRefreshable);
+		// 基于Nacos的属性源
+		NacosPropertySource propertySource = this.loadNacosPropertySource(dataId, group, fileExtension, isRefreshable);
 		this.addFirstPropertySource(composite, propertySource, false);
 	}
 
-	private NacosPropertySource loadNacosPropertySource(final String dataId,
-			final String group, String fileExtension, boolean isRefreshable) {
+	private NacosPropertySource loadNacosPropertySource(final String dataId, final String group, String fileExtension, boolean isRefreshable) {
+		// 如果还没刷新过，一种是配置没有发生变更，一种是本地还没启动好，未注册对应的监听器
 		if (NacosContextRefresher.getRefreshCount() != 0) {
 			if (!isRefreshable) {
-				return NacosPropertySourceRepository.getNacosPropertySource(dataId,
-						group);
+				// 对于不允许刷新的配置，从仓库中获取该属性
+				return NacosPropertySourceRepository.getNacosPropertySource(dataId, group);
 			}
 		}
-		return nacosPropertySourceBuilder.build(dataId, group, fileExtension,
-				isRefreshable);
+		return nacosPropertySourceBuilder.build(dataId, group, fileExtension, isRefreshable);
 	}
 
 	/**

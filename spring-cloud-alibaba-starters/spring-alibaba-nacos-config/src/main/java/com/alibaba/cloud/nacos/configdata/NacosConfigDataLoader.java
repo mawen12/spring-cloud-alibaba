@@ -45,10 +45,9 @@ import static com.alibaba.cloud.nacos.configdata.NacosConfigDataResource.NacosIt
 import static org.springframework.boot.context.config.ConfigData.Option;
 
 /**
- * Implementation of {@link ConfigDataLoader}.
+ * 从{@link NacosConfigDataResource}读取配置数据的{@link ConfigDataLoader}实现
  *
- * <p>
- * Load {@link ConfigData} via {@link NacosConfigDataResource}
+ * <p>遵循{@link ConfigDataLoader}的统一规范，将配置在{@code META-INF/spring.factories}
  *
  * @author freeman
  * @since 2021.0.1.0
@@ -62,28 +61,22 @@ public class NacosConfigDataLoader implements ConfigDataLoader<NacosConfigDataRe
 	}
 
 	@Override
-	public ConfigData load(ConfigDataLoaderContext context,
-			NacosConfigDataResource resource) {
+	public ConfigData load(ConfigDataLoaderContext context, NacosConfigDataResource resource) {
 		return doLoad(context, resource);
 	}
 
-	public ConfigData doLoad(ConfigDataLoaderContext context,
-			NacosConfigDataResource resource) {
+	public ConfigData doLoad(ConfigDataLoaderContext context, NacosConfigDataResource resource) {
 		try {
-			ConfigService configService = getBean(context, NacosConfigManager.class)
-					.getConfigService();
-			NacosConfigProperties properties = getBean(context,
-					NacosConfigProperties.class);
-
+			// 获取配置服务
+			ConfigService configService = getBean(context, NacosConfigManager.class).getConfigService();
+			// 获取Nacos配置中心属性
+			NacosConfigProperties properties = getBean(context, NacosConfigProperties.class);
+			// 读取配置项
 			NacosItemConfig config = resource.getConfig();
-			// pull config from nacos
-			List<PropertySource<?>> propertySources = pullConfig(configService,
-					config.getGroup(), config.getDataId(), config.getSuffix(),
-					properties.getTimeout());
+			// 从Nacos注册中心拉取配置，并转换为属性源
+			List<PropertySource<?>> propertySources = pullConfig(configService, config.getGroup(), config.getDataId(), config.getSuffix(), properties.getTimeout());
 
-			NacosPropertySource propertySource = new NacosPropertySource(propertySources,
-					config.getGroup(), config.getDataId(), new Date(),
-					config.isRefreshEnabled());
+			NacosPropertySource propertySource = new NacosPropertySource(propertySources, config.getGroup(), config.getDataId(), new Date(), config.isRefreshEnabled());
 
 			NacosPropertySourceRepository.collectNacosPropertySource(propertySource);
 
@@ -98,8 +91,7 @@ public class NacosConfigDataLoader implements ConfigDataLoader<NacosConfigDataRe
 		return null;
 	}
 
-	private Option[] getOptions(ConfigDataLoaderContext context,
-			NacosConfigDataResource resource) {
+	private Option[] getOptions(ConfigDataLoaderContext context, NacosConfigDataResource resource) {
 		List<Option> options = new ArrayList<>();
 		options.add(Option.IGNORE_IMPORTS);
 		options.add(Option.IGNORE_PROFILES);
@@ -112,15 +104,12 @@ public class NacosConfigDataLoader implements ConfigDataLoader<NacosConfigDataRe
 		return options.toArray(new Option[0]);
 	}
 
-	private ConfigPreference getPreference(ConfigDataLoaderContext context,
-			NacosConfigDataResource resource) {
+	private ConfigPreference getPreference(ConfigDataLoaderContext context, NacosConfigDataResource resource) {
 		Binder binder = context.getBootstrapContext().get(Binder.class);
 		String prefix = NacosPropertiesPrefixer.getPrefix(binder);
 
 
-		ConfigPreference preference = binder
-				.bind(prefix + ".config.preference", ConfigPreference.class)
-				.orElse(LOCAL);
+		ConfigPreference preference = binder.bind(prefix + ".config.preference", ConfigPreference.class).orElse(LOCAL);
 		String specificPreference = resource.getConfig().getPreference();
 		if (specificPreference != null) {
 			try {
@@ -136,30 +125,26 @@ public class NacosConfigDataLoader implements ConfigDataLoader<NacosConfigDataRe
 		return preference;
 	}
 
-	private List<PropertySource<?>> pullConfig(ConfigService configService, String group,
-			String dataId, String suffix, long timeout)
-			throws NacosException, IOException {
+	private List<PropertySource<?>> pullConfig(ConfigService configService, String group, String dataId, String suffix, long timeout) throws NacosException, IOException {
+		// 从Nacos Server读取指定配置
 		String config = configService.getConfig(dataId, group, timeout);
+		// 写入日志
 		logLoadInfo(group, dataId, config);
 		// fixed issue: https://github.com/alibaba/spring-cloud-alibaba/issues/2906 .
 		String configName = group + "@" + dataId;
+		// 解析配置，从String -> List<PropertySource>
 		return NacosDataParserHandler.getInstance().parseNacosData(configName, config, suffix);
 	}
 
 	private void logLoadInfo(String group, String dataId, String config) {
 		if (config != null) {
-			log.info(String.format(
-					"[Nacos Config] Load config[dataId=%s, group=%s] success", dataId,
-					group));
+			log.info(String.format("[Nacos Config] Load config[dataId=%s, group=%s] success", dataId, group));
 		}
 		else {
-			log.warn(String.format("[Nacos Config] config[dataId=%s, group=%s] is empty",
-					dataId, group));
+			log.warn(String.format("[Nacos Config] config[dataId=%s, group=%s] is empty", dataId, group));
 		}
 		if (log.isDebugEnabled()) {
-			log.debug(String.format(
-					"[Nacos Config] config[dataId=%s, group=%s] content: \n%s", dataId,
-					group, config));
+			log.debug(String.format("[Nacos Config] config[dataId=%s, group=%s] content: \n%s", dataId, group, config));
 		}
 	}
 

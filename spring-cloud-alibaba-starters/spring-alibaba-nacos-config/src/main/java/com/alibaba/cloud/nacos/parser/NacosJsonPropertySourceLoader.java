@@ -30,6 +30,10 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.Resource;
 
 /**
+ * 用于加载{@code json}格式的属性源
+ *
+ * <p>支持格式为json
+ *
  * @author zkz
  */
 public class NacosJsonPropertySourceLoader extends AbstractPropertySourceLoader {
@@ -59,17 +63,16 @@ public class NacosJsonPropertySourceLoader extends AbstractPropertySourceLoader 
 	 * @throws IOException if the source cannot be loaded
 	 */
 	@Override
-	protected List<PropertySource<?>> doLoad(String name, Resource resource)
-			throws IOException {
+	protected List<PropertySource<?>> doLoad(String name, Resource resource) throws IOException {
 		Map<String, Object> result = new LinkedHashMap<>(32);
 		ObjectMapper mapper = new ObjectMapper();
 		// [fix issue #3043] support comment in json config
 		mapper.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
-		Map<String, Object> nacosDataMap = mapper.readValue(resource.getInputStream(),
-				LinkedHashMap.class);
+		// 将Resource转换为Map
+		Map<String, Object> nacosDataMap = mapper.readValue(resource.getInputStream(), LinkedHashMap.class);
+		// 对Map进行展开，并保存到result中
 		flattenedMap(result, nacosDataMap, null);
-		return Collections.singletonList(
-				new OriginTrackedMapPropertySource(name, this.reloadMap(result), true));
+		return Collections.singletonList(new OriginTrackedMapPropertySource(name, this.reloadMap(result), true));
 
 	}
 

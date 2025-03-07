@@ -19,12 +19,15 @@ package com.alibaba.cloud.nacos.parser;
 import org.springframework.core.io.ByteArrayResource;
 
 /**
- * Nacos-specific resource.
+ * Nacos特定的字节数组资源
  *
  * @author zkz
  */
 public class NacosByteArrayResource extends ByteArrayResource {
 
+	/**
+	 * 文件名称，即资源的来源
+	 */
 	private String filename;
 
 	/**

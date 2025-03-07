@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Nacos 快照配置管理器，使用内存保存快照配置
+ *
  * @author: ruansheng
  * @date: 2024-01-22
  */
@@ -32,40 +34,62 @@ public final class NacosSnapshotConfigManager {
 	private NacosSnapshotConfigManager() {
 	}
 
-	private static final Logger log = LoggerFactory
-			.getLogger(NacosSnapshotConfigManager.class);
+	private static final Logger log = LoggerFactory.getLogger(NacosSnapshotConfigManager.class);
 
-	private static final Map<String, String> CONFIG_INFO_SNAPSHOT_MAP = new ConcurrentHashMap<>(
-			8);
+	/**
+	 * 保存配置的快照信息
+	 */
+	private static final Map<String/* {dataId}@{group} */, String/* 配置字符串 */> CONFIG_INFO_SNAPSHOT_MAP = new ConcurrentHashMap<>(8);
 
+	/**
+	 * 可存储的最大快照总数
+	 */
 	private static final int MAX_SNAPSHOT_COUNT = 100;
 
 	private static String formatConfigSnapshotKey(String dataId, String group) {
 		return dataId + "@" + group;
 	}
 
+	/**
+	 * 获取并移除配置
+	 *
+	 * @param dataId
+	 * @param group
+	 * @return
+	 */
 	public static String getAndRemoveConfigSnapshot(String dataId, String group) {
-		String configInfo = CONFIG_INFO_SNAPSHOT_MAP
-				.get(formatConfigSnapshotKey(dataId, group));
+		// 获取快照的配置
+		// TODO by mawen 是否可以简化为直接使用 remove
+		String configInfo = CONFIG_INFO_SNAPSHOT_MAP.get(formatConfigSnapshotKey(dataId, group));
+		// 移除快照配置
 		removeConfigSnapshot(dataId, group);
+		// 返回配置
 		return configInfo;
 	}
 
+	/**
+	 * 保存配置
+	 *
+	 * @param dataId
+	 * @param group
+	 * @param configInfo
+	 */
 	public static void putConfigSnapshot(String dataId, String group, String configInfo) {
 		try {
-			// Theoretically, the capacity limit restriction will never be triggered.
-			// This portion of the code serves as an additional fault tolerance layer.
+			// 理论上，容量限制永远不会被触发，这部分代码作为额外的容错层
 			if (CONFIG_INFO_SNAPSHOT_MAP.size() > MAX_SNAPSHOT_COUNT) {
-				Iterator<Map.Entry<String, String>> iterator = CONFIG_INFO_SNAPSHOT_MAP
-						.entrySet().iterator();
+				// 获取配置迭代器，并移除第一个，需要注意该值并非最早注册的
+				Iterator<Map.Entry<String, String>> iterator = CONFIG_INFO_SNAPSHOT_MAP.entrySet().iterator();
 				iterator.next();
 				iterator.remove();
 			}
 			String snapshotKey = formatConfigSnapshotKey(dataId, group);
 			if (configInfo == null) {
+				// 移除不存在的配置
 				CONFIG_INFO_SNAPSHOT_MAP.remove(snapshotKey);
 			}
 			else {
+				// 放入配置
 				CONFIG_INFO_SNAPSHOT_MAP.put(snapshotKey, configInfo);
 			}
 		}

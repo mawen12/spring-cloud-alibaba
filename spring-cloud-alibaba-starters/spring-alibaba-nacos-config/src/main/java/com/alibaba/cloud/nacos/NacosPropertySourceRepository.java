@@ -23,19 +23,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.alibaba.cloud.nacos.client.NacosPropertySource;
 
 /**
+ * Nacos 属性源仓库
+ *
  * @author xiaojing
  * @author pbting
  */
 public final class NacosPropertySourceRepository {
 
-	private final static ConcurrentHashMap<String, NacosPropertySource> NACOS_PROPERTY_SOURCE_REPOSITORY = new ConcurrentHashMap<>();
+	private final static ConcurrentHashMap<String/* 属性源名称，格式为{dataId}-{group} */ , NacosPropertySource/* Nacos 属性源 */> NACOS_PROPERTY_SOURCE_REPOSITORY = new ConcurrentHashMap<>();
 
 	private NacosPropertySourceRepository() {
 
 	}
 
 	/**
-	 * @return all nacos properties from application context.
+	 * @return 返回来自应用程序上下文的所有Nacos属性
 	 */
 	public static List<NacosPropertySource> getAll() {
 		return new ArrayList<>(NACOS_PROPERTY_SOURCE_REPOSITORY.values());
@@ -46,10 +48,8 @@ public final class NacosPropertySourceRepository {
 	 * @param nacosPropertySource nacosPropertySource
 	 */
 	@Deprecated
-	public static void collectNacosPropertySources(
-			NacosPropertySource nacosPropertySource) {
-		NACOS_PROPERTY_SOURCE_REPOSITORY.putIfAbsent(nacosPropertySource.getDataId(),
-				nacosPropertySource);
+	public static void collectNacosPropertySources(NacosPropertySource nacosPropertySource) {
+		NACOS_PROPERTY_SOURCE_REPOSITORY.putIfAbsent(nacosPropertySource.getDataId(), nacosPropertySource);
 	}
 
 	/**
@@ -63,21 +63,23 @@ public final class NacosPropertySourceRepository {
 		return NACOS_PROPERTY_SOURCE_REPOSITORY.get(dataId);
 	}
 
-	public static void collectNacosPropertySource(
-			NacosPropertySource nacosPropertySource) {
-		NACOS_PROPERTY_SOURCE_REPOSITORY
-				.putIfAbsent(getMapKey(nacosPropertySource.getDataId(),
-						nacosPropertySource.getGroup()), nacosPropertySource);
+	public static void collectNacosPropertySource(NacosPropertySource nacosPropertySource) {
+		NACOS_PROPERTY_SOURCE_REPOSITORY.putIfAbsent(getMapKey(nacosPropertySource.getDataId(), nacosPropertySource.getGroup()), nacosPropertySource);
 	}
 
-	public static NacosPropertySource getNacosPropertySource(String dataId,
-			String group) {
+	public static NacosPropertySource getNacosPropertySource(String dataId, String group) {
 		return NACOS_PROPERTY_SOURCE_REPOSITORY.get(getMapKey(dataId, group));
 	}
 
+	/**
+	 * 返回{dataId}-{group}格式的文件
+	 *
+	 * @param dataId
+	 * @param group
+	 * @return
+	 */
 	public static String getMapKey(String dataId, String group) {
-		return String.join(NacosConfigProperties.COMMAS, String.valueOf(dataId),
-				String.valueOf(group));
+		return String.join(NacosConfigProperties.COMMAS, String.valueOf(dataId), String.valueOf(group));
 	}
 
 }

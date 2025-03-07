@@ -48,8 +48,7 @@ import org.springframework.core.Ordered;
 import static com.alibaba.cloud.nacos.configdata.NacosConfigDataResource.NacosItemConfig;
 
 /**
- * Implementation of {@link ConfigDataLocationResolver}, load Nacos
- * {@link ConfigDataResource}.
+ * 用于加载{@link NacosConfigDataResource}的解析器
  *
  * @author freeman
  * @since 2021.0.1.0
@@ -76,15 +75,15 @@ public class NacosConfigDataLocationResolver
 		return -1;
 	}
 
-	protected NacosConfigProperties loadProperties(
-			ConfigDataLocationResolverContext context) {
+	protected NacosConfigProperties loadProperties(ConfigDataLocationResolverContext context) {
+		// 获取读取环境的类
 		Binder binder = context.getBinder();
 		BindHandler bindHandler = getBindHandler(context);
 
 		NacosConfigProperties nacosConfigProperties;
 		if (context.getBootstrapContext().isRegistered(NacosConfigDataLoadProperties.class)) {
-			nacosConfigProperties = context.getBootstrapContext()
-					.get(NacosConfigDataLoadProperties.class);
+			// 从
+			nacosConfigProperties = context.getBootstrapContext().get(NacosConfigDataLoadProperties.class);
 		}
 		else {
 			String nacosPrefix = NacosPropertiesPrefixer.getPrefix(context.getBinder());
@@ -116,8 +115,7 @@ public class NacosConfigDataLocationResolver
 	}
 
 	@Override
-	public boolean isResolvable(ConfigDataLocationResolverContext context,
-			ConfigDataLocation location) {
+	public boolean isResolvable(ConfigDataLocationResolverContext context, ConfigDataLocation location) {
 		if (!location.hasPrefix(getPrefix())) {
 			return false;
 		}
@@ -133,18 +131,12 @@ public class NacosConfigDataLocationResolver
 	}
 
 	@Override
-	public List<NacosConfigDataResource> resolve(
-			ConfigDataLocationResolverContext context, ConfigDataLocation location)
-			throws ConfigDataLocationNotFoundException,
-			ConfigDataResourceNotFoundException {
+	public List<NacosConfigDataResource> resolve(ConfigDataLocationResolverContext context, ConfigDataLocation location) throws ConfigDataLocationNotFoundException, ConfigDataResourceNotFoundException {
 		return Collections.emptyList();
 	}
 
 	@Override
-	public List<NacosConfigDataResource> resolveProfileSpecific(
-			ConfigDataLocationResolverContext resolverContext,
-			ConfigDataLocation location, Profiles profiles)
-			throws ConfigDataLocationNotFoundException {
+	public List<NacosConfigDataResource> resolveProfileSpecific(ConfigDataLocationResolverContext resolverContext, ConfigDataLocation location, Profiles profiles) throws ConfigDataLocationNotFoundException {
 		NacosConfigProperties properties = loadProperties(resolverContext);
 
 		ConfigurableBootstrapContext bootstrapContext = resolverContext
@@ -158,9 +150,7 @@ public class NacosConfigDataLocationResolver
 		return loadConfigDataResources(location, profiles, properties);
 	}
 
-	private List<NacosConfigDataResource> loadConfigDataResources(
-			ConfigDataLocation location, Profiles profiles,
-			NacosConfigProperties properties) {
+	private List<NacosConfigDataResource> loadConfigDataResources(ConfigDataLocation location, Profiles profiles, NacosConfigProperties properties) {
 		List<NacosConfigDataResource> result = new ArrayList<>();
 		URI uri = getUri(location, properties);
 
@@ -195,8 +185,7 @@ public class NacosConfigDataLocationResolver
 		return getUri(uri);
 	}
 
-	private void registerConfigManager(NacosConfigProperties properties,
-			ConfigurableBootstrapContext bootstrapContext) {
+	private void registerConfigManager(NacosConfigProperties properties, ConfigurableBootstrapContext bootstrapContext) {
 		if (!bootstrapContext.isRegistered(NacosConfigManager.class)) {
 			bootstrapContext.register(NacosConfigManager.class,
 					InstanceSupplier.of(NacosConfigManager.getInstance(properties)));

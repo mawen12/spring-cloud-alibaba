@@ -18,6 +18,9 @@ package com.alibaba.cloud.nacos.refresh;
 
 import org.springframework.context.ApplicationEvent;
 
+/**
+ * Nacos 配置刷新事件
+ */
 public class NacosConfigRefreshEvent extends ApplicationEvent {
 	String dataId;
 	String group;
